@@ -3,7 +3,7 @@ import { defineComponent, ref, h, watch, onMounted, onUnmounted } from 'vue';
 import PostCard from '../components/PostCard';
 import AudioRecorder from '../components/AudioRecorder';
 import { db } from '../services/db';
-import { Post } from '../types';
+import { Post, Story } from '../types';
 
 export default defineComponent({
   name: 'FeedView',
@@ -12,25 +12,30 @@ export default defineComponent({
   },
   setup(props) {
     const posts = ref<Post[]>([]);
+    const stories = ref<Story[]>([]);
     const isPosting = ref(false);
+    const isPostingStory = ref(false);
     const postingTab = ref<'text' | 'audio' | 'image'>('text');
     const newPostContent = ref('');
     const recordedAudio = ref<any>(null);
+    const newStoryContent = ref(''); // Base64 data
+    const newStoryType = ref<'image' | 'video'>('image');
+    const selectedStory = ref<Story | null>(null);
     let unsubscribe: any = null;
+    let unsubscribeStories: any = null;
 
     onMounted(() => {
       unsubscribe = db.subscribePosts((newPosts) => {
         posts.value = newPosts;
-
-        // Si vide, on ajoute peut-être un post de bienvenue (optionnel)
-        if (newPosts.length === 0) {
-          // On pourrait ajouter le post par défaut ici via db.addPost
-        }
+      });
+      unsubscribeStories = db.subscribeStories((newStories) => {
+        stories.value = newStories;
       });
     });
 
     onUnmounted(() => {
       if (unsubscribe) unsubscribe();
+      if (unsubscribeStories) unsubscribeStories();
     });
 
     const handleAudioRecorded = (data: any) => {
@@ -57,6 +62,27 @@ export default defineComponent({
       resetPosting();
     };
 
+    const submitStory = async () => {
+      const user = db.getProfile();
+      if (!newStoryContent.value) return;
+
+      const storyData: Partial<Story> = {
+        userId: user.phone,
+        name: user.name,
+        avatar: user.avatar || 'assets/default-avatar.svg',
+        content: newStoryContent.value,
+        type: newStoryType.value,
+      };
+
+      await db.addStory(storyData);
+      resetStoryPosting();
+    };
+
+    const resetStoryPosting = () => {
+      newStoryContent.value = '';
+      isPostingStory.value = false;
+    };
+
     const resetPosting = () => {
       newPostContent.value = '';
       recordedAudio.value = null;
@@ -65,8 +91,37 @@ export default defineComponent({
     };
 
     return () => h('div', { class: "flex flex-col min-h-full pb-20" }, [
-      // ... stories ...
+      // Horizontal Stories Bar
       h('div', { class: "px-5 py-6 flex gap-4 overflow-x-auto no-scrollbar bg-white dark:bg-transparent" }, [
+        // Add Story Button
+        h('button', {
+          onClick: () => isPostingStory.value = true,
+          class: "flex flex-col items-center gap-2 shrink-0 group"
+        }, [
+          h('div', { class: "w-16 h-16 rounded-[22px] border-2 border-dashed border-primary/40 flex items-center justify-center group-active:scale-95 transition-all bg-primary/5" }, [
+            h('span', { class: "material-icons-round text-primary" }, 'add')
+          ]),
+          h('span', { class: "text-[10px] font-black uppercase tracking-widest text-primary" }, 'Ma Story')
+        ]),
+
+        // Real Stories
+        stories.value.map(s => h('button', {
+          key: s.id,
+          onClick: () => selectedStory.value = s,
+          class: "flex flex-col items-center gap-2 shrink-0 group"
+        }, [
+          h('div', { class: "w-16 h-16 rounded-[22px] p-0.5 bg-gradient-to-tr from-primary via-orange-500 to-rose-400 group-active:scale-90 transition-all shadow-lg" }, [
+            h('div', { class: "w-full h-full rounded-[20px] border-2 border-white dark:border-[#0f1115] overflow-hidden bg-slate-100" }, [
+              h('img', {
+                src: s.content || 'assets/campus-story.svg',
+                class: "w-full h-full object-cover"
+              })
+            ])
+          ]),
+          h('span', { class: "text-[10px] font-bold opacity-60 uppercase tracking-widest truncate w-16" }, s.name.split(' ')[0])
+        ])),
+
+        // FaceMatch shortcut
         h('button', {
           onClick: () => (window as any).dispatchEvent(new CustomEvent('nav', { detail: 'facematch' })),
           class: "flex flex-col items-center gap-2 shrink-0 group"
@@ -77,13 +132,7 @@ export default defineComponent({
             ])
           ]),
           h('span', { class: "text-[10px] font-black uppercase tracking-widest text-primary" }, 'FaceMatch')
-        ]),
-        [1, 2, 3].map(i => h('div', { key: i, class: "flex flex-col items-center gap-2 shrink-0" }, [
-          h('div', { class: "w-16 h-16 rounded-[22px] p-0.5 border border-slate-200 dark:border-white/10" }, [
-            h('img', { src: 'assets/campus-story.svg', class: "w-full h-full rounded-[20px] object-cover opacity-60" })
-          ]),
-          h('span', { class: "text-[10px] font-bold opacity-30 uppercase tracking-widest" }, 'Campus')
-        ]))
+        ])
       ]),
 
       // Posts
@@ -108,7 +157,83 @@ export default defineComponent({
         }))
       ),
 
-      // Modal
+      // Story Creator Modal
+      isPostingStory.value ? h('div', { class: "fixed inset-0 z-[150] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 animate-in zoom-in duration-300" }, [
+        h('div', { class: "w-full max-w-sm bg-white dark:bg-[#1a1d23] rounded-[40px] p-8 space-y-6" }, [
+          h('h3', { class: "text-2xl font-black text-center" }, "Nouvelle Étincelle"),
+          h('div', {
+            onClick: () => (document.getElementById('story-file-input') as HTMLInputElement).click(),
+            class: "aspect-[9/16] bg-slate-100 dark:bg-white/5 rounded-[30px] border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center p-4 text-center cursor-pointer hover:border-primary/40 transition-all overflow-hidden relative"
+          }, [
+            newStoryContent.value ? (
+              newStoryType.value === 'image'
+                ? h('img', { src: newStoryContent.value, class: "absolute inset-0 w-full h-full object-cover" })
+                : h('video', { src: newStoryContent.value, class: "absolute inset-0 w-full h-full object-cover", autoplay: true, muted: true, loop: true })
+            ) : [
+              h('span', { class: "material-icons-round text-5xl text-primary mb-4" }, 'add_a_photo'),
+              h('p', { class: "text-xs font-bold opacity-40 uppercase tracking-widest" }, "Photos ou Vidéos")
+            ],
+            h('input', {
+              id: 'story-file-input',
+              type: 'file',
+              accept: 'image/*,video/*',
+              class: "hidden",
+              onChange: (e: any) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const type = file.type.startsWith('video') ? 'video' : 'image';
+                  newStoryType.value = type;
+                  const reader = new FileReader();
+                  reader.onload = (re) => newStoryContent.value = re.target?.result as string;
+                  reader.readAsDataURL(file);
+                }
+              }
+            })
+          ]),
+          h('div', { class: "flex gap-3" }, [
+            h('button', { onClick: resetStoryPosting, class: "flex-1 py-4 font-black uppercase text-[10px] tracking-widest opacity-40" }, "Annuler"),
+            h('button', {
+              onClick: submitStory,
+              disabled: !newStoryContent.value,
+              class: "flex-[2] py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 disabled:opacity-20"
+            }, "Propager")
+          ])
+        ])
+      ]) : null,
+
+      // Story Viewer Modal
+      selectedStory.value ? h('div', {
+        onClick: () => selectedStory.value = null,
+        class: "fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center animate-in fade-in"
+      }, [
+        h('div', { class: "absolute top-0 left-0 right-0 p-8 flex items-center gap-4 z-10 bg-gradient-to-b from-black/60 to-transparent" }, [
+          h('div', { class: "w-10 h-10 rounded-full border-2 border-primary overflow-hidden" }, [
+            h('img', { src: selectedStory.value.avatar, class: "w-full h-full object-cover" })
+          ]),
+          h('div', [
+            h('p', { class: "text-white font-black text-sm" }, selectedStory.value.name),
+            h('p', { class: "text-white/60 text-[8px] font-bold uppercase tracking-widest" }, "24h Story")
+          ]),
+          h('button', { class: "ml-auto text-white" }, [h('span', { class: "material-icons-round font-black" }, 'close')])
+        ]),
+        selectedStory.value.type === 'image'
+          ? h('img', {
+            src: selectedStory.value.content,
+            class: "w-full h-full object-contain"
+          })
+          : h('video', {
+            src: selectedStory.value.content,
+            class: "w-full h-full object-contain",
+            autoplay: true,
+            playsinline: true,
+            loop: true
+          }),
+        h('div', { class: "absolute bottom-0 left-0 right-0 h-1 bg-white/20" }, [
+          h('div', { class: "h-full bg-primary animate-story-progress" })
+        ])
+      ]) : null,
+
+      // Post Modal
       isPosting.value ? h('div', { class: "fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in" }, [
         h('div', { class: "bg-white dark:bg-[#1a1d23] w-full max-w-lg rounded-t-[40px] sm:rounded-[40px] p-6 pb-12 sm:pb-6 shadow-2xl flex flex-col gap-5 animate-in slide-in-from-bottom" }, [
           h('div', { class: "flex items-center justify-between" }, [

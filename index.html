@@ -1,16 +1,25 @@
 <!DOCTYPE html>
 <html lang="fr" class="dark">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Flammes UP - Parakou</title>
-  
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="icon" type="image/png" href="assets/logo-new.png">
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  
+
   <style>
-    body { margin: 0; overflow: hidden; font-family: 'Lexend', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Lexend', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     #preloader {
       background: #0f1115;
       display: flex;
@@ -21,45 +30,58 @@
       inset: 0;
       z-index: 9999;
     }
+
     .logo-container {
       position: relative;
       width: 120px;
       height: 120px;
     }
+
     /* Squircle shape approximation */
     .squircle {
       position: absolute;
       inset: 0;
-      background: #ee2b2b;
+      background: #991b1b;
       border-radius: 40px;
-      box-shadow: 0 20px 50px rgba(238, 43, 43, 0.4);
+      box-shadow: 0 20px 50px rgba(153, 27, 27, 0.4);
     }
-    .flame-white {
+
+    .logo-img {
       position: absolute;
-      inset: 20%;
-      fill: white;
+      inset: 15%;
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
     }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   </style>
-  <link rel="stylesheet" href="/index.css">
 </head>
-<body class="antialiased bg-white dark:bg-[#0f1115] text-slate-900 dark:text-white transition-colors duration-500">
+
+<body class="antialiased bg-[#FFFDE7] dark:bg-[#0f1115] text-slate-900 dark:text-white transition-colors duration-500">
   <div id="preloader">
     <div class="logo-container" id="logo-wrap">
       <div class="squircle" id="logo-squircle"></div>
-      <svg class="flame-white" id="logo-flame" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <path d="M50 90 C25 90 10 70 10 45 C10 20 50 0 50 0 C50 0 90 20 90 45 C90 70 75 90 50 90 Z M50 80 C65 80 75 70 75 55 C75 40 50 20 50 20 C50 20 25 40 25 55 C25 70 35 80 50 80 Z" />
-      </svg>
+      <img src="assets/logo-new.png" class="logo-img" id="logo-flame">
     </div>
     <div class="mt-12 text-center">
-      <h2 class="text-white font-black text-2xl tracking-tighter mb-1 uppercase">FLAMMES <span class="text-primary italic">UP</span></h2>
-      <p id="loader-status" class="text-[9px] font-bold text-primary uppercase tracking-[0.5em] transition-opacity duration-300">Initialisation du réseau...</p>
+      <h2 class="text-white font-black text-2xl tracking-tighter mb-1 uppercase"><span
+          style="color: #991b1b">FLAMMES</span> <span class="text-white italic">UP</span></h2>
+      <p id="loader-status"
+        class="text-[9px] font-bold text-primary uppercase tracking-[0.5em] transition-opacity duration-300">
+        Initialisation du réseau...</p>
     </div>
   </div>
 
   <div id="app"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
-</html>
 
+</html>

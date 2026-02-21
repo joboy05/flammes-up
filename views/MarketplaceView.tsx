@@ -15,14 +15,6 @@ interface Product {
 
 const CATEGORIES = ['Tous', 'Électronique', 'Cours', 'Accessoires', 'Logement', 'Autre'];
 
-const DEFAULT_PRODUCTS: Product[] = [
-  { id: '1', title: 'Dell Latitude', price: '175.000', location: 'Zongo', category: 'Électronique', seller: 'Moussa K.', description: "Excellent état, idéal pour les cours." },
-  { id: '2', title: 'Fascicule Macro L1', price: '1.500', location: 'Campus Nord', category: 'Cours', seller: 'Jean P.', description: 'Support complet S1.' },
-  { id: '3', title: 'Casque JBL', price: '12.000', location: 'Banikanni', category: 'Accessoires', seller: 'Sarah L.', description: 'Quasi neuf, très bon son.' },
-  { id: '4', title: 'Chambre meublée', price: '20.000', location: 'Zongo', category: 'Logement', seller: 'Ibrahim D.', description: 'Chambre propre près du campus. Eau incluse.' },
-  { id: '5', title: 'Cours de droit L2', price: '800', location: 'FDSP', category: 'Cours', seller: 'Aïcha M.', description: 'Polycopiés complets S1+S2.' },
-];
-
 export default defineComponent({
   name: 'MarketplaceView',
   props: {
@@ -38,7 +30,7 @@ export default defineComponent({
 
     onMounted(() => {
       unsubscribe = (db as any).subscribeProducts((newProducts: any) => {
-        products.value = newProducts.length > 0 ? newProducts : DEFAULT_PRODUCTS;
+        products.value = newProducts;
       });
     });
 

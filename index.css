@@ -29,7 +29,7 @@
   }
 
   .ios-blur {
-    @apply backdrop-blur-2xl bg-white/70 dark:bg-black/70;
+    @apply backdrop-blur-2xl bg-[#FFF9E5]/70 dark:bg-black/70;
   }
 
   .text-gradient {
@@ -39,7 +39,7 @@
 
 /* Red-White Luxury Gradients */
 .card-luxury {
-  @apply bg-white dark:bg-[#1a1d23] border border-slate-100 dark:border-white/5 shadow-xl transition-all duration-300;
+  @apply bg-[#FFFDE7] dark:bg-[#1a1d23] border border-slate-100 dark:border-white/5 shadow-xl transition-all duration-300;
 }
 
 .btn-primary {

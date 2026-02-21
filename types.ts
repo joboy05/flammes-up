@@ -5,12 +5,15 @@ export interface UserProfile {
   phone: string;
   faculty: string;
   level: string;
-  isResident: boolean;
-  maritalStatus: 'celibataire' | 'en_couple' | 'marie' | 'complique';
+  residence: string; // 'externe' or specific residence name
+  maritalStatus: 'celibataire' | 'en_couple' | 'marie' | 'complique' | 'non_defini';
   avatar: string;
   bio: string;
   vibesReceived: number;
+  upPoints: number;
   hasStory: boolean;
+  isProfileComplete?: boolean;
+  role: 'user' | 'admin';
 }
 
 export interface Comment {
@@ -83,4 +86,31 @@ export interface StudyResource {
   size: string;
   type: string;
   downloads: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  from: string;
+  text?: string;
+  type: 'text' | 'image' | 'audio' | 'video' | 'location';
+  time: string;
+  mediaUrl?: string; // Can be Base64 or URL
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string;
+  };
+  audioDuration?: string;
+  createdAt: any;
+}
+
+export interface Story {
+  id: string;
+  userId: string;
+  name: string;
+  avatar: string;
+  content: string; // URL or Base64
+  type: 'image' | 'video';
+  createdAt: any;
+  expiresAt: any;
 }

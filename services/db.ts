@@ -1,5 +1,5 @@
 
-import { Post, UserProfile } from '../types';
+import { Post, UserProfile, ChatMessage, Story } from '../types';
 import { db_firebase } from './firebase';
 import {
   collection,
@@ -11,6 +11,7 @@ import {
   orderBy,
   setDoc,
   getDoc,
+  where,
   Timestamp,
   increment,
   arrayUnion
@@ -85,16 +86,23 @@ export const db = {
       phone: '',
       faculty: 'FLASH (Lettres & Arts)',
       level: 'Licence 1',
-      isResident: false,
-      maritalStatus: 'celibataire',
+      residence: 'externe',
+      maritalStatus: 'non_defini',
       avatar: '',
       bio: '',
       vibesReceived: 0,
-      hasStory: false
+      upPoints: 0,
+      hasStory: false,
+      isProfileComplete: false,
+      role: 'user'
     };
   },
   saveProfile: (profile: UserProfile) => {
     localStorage.setItem('up_profile', JSON.stringify(profile));
+  },
+  updateProfile: async (userId: string, data: Partial<UserProfile>) => {
+    const ref = doc(db_firebase, "users", userId);
+    await updateDoc(ref, data);
   },
 
   // --- CONFESSIONS ---
@@ -198,11 +206,73 @@ export const db = {
     });
   },
 
-  sendMessage: async (convId: string, message: { text: string, from: string }) => {
+  sendMessage: async (convId: string, message: Partial<ChatMessage>) => {
     await addDoc(collection(db_firebase, "conversations", convId, "messages"), {
       ...message,
       time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      createdAt: Timestamp.now()
+      createdAt: Timestamp.now(),
+      type: message.type || 'text'
+    });
+  },
+
+  // --- STORIES (24h) ---
+  subscribeStories: (callback: (stories: Story[]) => void) => {
+    const now = Timestamp.now();
+    const q = query(
+      collection(db_firebase, "stories"),
+      where("expiresAt", ">", now),
+      orderBy("expiresAt", "asc")
+    );
+    return onSnapshot(q, (snapshot) => {
+      const stories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Story));
+      callback(stories);
+    });
+  },
+
+  addStory: async (story: Partial<Story>) => {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24 hours
+    await addDoc(collection(db_firebase, "stories"), {
+      ...story,
+      createdAt: Timestamp.fromDate(now),
+      expiresAt: Timestamp.fromDate(expiresAt)
+    });
+  },
+
+  // --- ADMIN STATS ---
+  getGlobalStats: async () => {
+    // In a production app, use Cloud Functions to maintain counters.
+    // For this prototype, we'll fetch all docs to get the count.
+    try {
+      const { getCountFromServer } = await import("firebase/firestore");
+      const usersSnapshot = await getCountFromServer(collection(db_firebase, "users"));
+      const storiesSnapshot = await getCountFromServer(collection(db_firebase, "stories"));
+      return {
+        userCount: usersSnapshot.data().count,
+        activeStories: storiesSnapshot.data().count
+      };
+    } catch (e) {
+      return { userCount: 0, activeStories: 0 };
+    }
+  },
+
+  // --- LEADERBOARD ---
+  subscribeLeaderboard: (callback: (users: UserProfile[]) => void) => {
+    const q = query(
+      collection(db_firebase, "users"),
+      orderBy("vibesReceived", "desc"),
+      where("vibesReceived", ">", 0) // Only show those with vibes
+    );
+    return onSnapshot(q, (snapshot) => {
+      const users = snapshot.docs.map(doc => doc.data() as UserProfile);
+      callback(users);
+    });
+  },
+
+  subscribeUsers: (callback: (users: UserProfile[]) => void) => {
+    return onSnapshot(collection(db_firebase, "users"), (snapshot) => {
+      const users = snapshot.docs.map(doc => doc.data() as UserProfile);
+      callback(users);
     });
   }
 };

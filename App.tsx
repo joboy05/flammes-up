@@ -23,13 +23,18 @@ import AuthView from './views/AuthView';
 import PublicFeedView from './views/PublicFeedView';
 import LegalView from './views/LegalView';
 import ChatDetailView from './views/ChatDetailView';
+import ProfileSetupView from './views/ProfileSetupView';
 import AssistantView from './views/AssistantView';
 import MissionsView from './views/MissionsView';
 import AlertsView from './views/AlertsView';
 import RestoWaitView from './views/RestoWaitView';
 import SecretCrushView from './views/SecretCrushView';
 import FaceMatchView from './views/FaceMatchView';
+import AdminDashboardView from './views/AdminDashboardView';
 import LeaderboardView from './views/LeaderboardView';
+
+import { db_firebase } from './services/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default defineComponent({
   name: 'App',
@@ -58,9 +63,38 @@ export default defineComponent({
       localStorage.setItem('up_profile', JSON.stringify(newVal));
     }, { deep: true });
 
+    const showLoader = (show: boolean) => {
+      const preloader = document.getElementById('preloader');
+      if (preloader) {
+        if (show) {
+          preloader.style.display = 'flex';
+          preloader.style.visibility = 'visible';
+          preloader.style.opacity = '1';
+        } else {
+          (anime as any)({
+            targets: preloader,
+            opacity: [1, 0],
+            easing: 'easeInOutQuad',
+            duration: 500,
+            complete: () => { preloader.style.display = 'none'; }
+          });
+        }
+      }
+    };
+
     onMounted(() => {
       document.documentElement.classList.add('dark');
-      window.addEventListener('nav', (e: any) => activeTab.value = e.detail);
+      window.addEventListener('nav', (e: any) => {
+        showLoader(true);
+        activeTab.value = (e as any).detail;
+        setTimeout(() => showLoader(false), 800);
+      });
+
+      // --- FORCE ADMIN ROLE FOR THE DEDICATED ACC ---
+      if (currentUser.value.phone === '0151852420' && currentUser.value.role !== 'admin') {
+        currentUser.value.role = 'admin';
+        localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
+      }
 
       setTimeout(() => {
         const preloader = document.getElementById('preloader');
@@ -71,17 +105,95 @@ export default defineComponent({
       }, 1500);
     });
 
-    const handleLogin = (phone: string) => {
-      currentUser.value.phone = phone;
-      isAuthenticated.value = true;
-      localStorage.setItem('up_auth', 'true');
-      activeTab.value = 'feed';
+    const handleLogin = async (data: { phone: string; password?: string, googleUser?: any }) => {
+      try {
+        showLoader(true);
+        const id = data.phone;
+        const userDoc = await getDoc(doc(db_firebase, 'users', id));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (id === '0151852420') {
+            if (data.password && data.password !== 'Azerty123') {
+              alert("Mot de passe incorrect pour le compte administrateur.");
+              showLoader(false);
+              return;
+            }
+            userData.role = 'admin'; // Force role admin
+          }
+          currentUser.value = { ...currentUser.value, ...userData };
+          isAuthenticated.value = true;
+          localStorage.setItem('up_auth', 'true');
+          localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
+          activeTab.value = 'hub'; // Redirect to Hub where the admin link is prominent
+        } else if (data.googleUser) {
+          // Google user specifically needs special handling if first time
+          const newUser = {
+            ...currentUser.value,
+            name: data.googleUser.displayName || 'Utilisateur Google',
+            phone: id,
+            avatar: data.googleUser.photoURL || '',
+            isProfileComplete: false
+          };
+          currentUser.value = newUser;
+          isAuthenticated.value = true;
+          localStorage.setItem('up_auth', 'true');
+          // No immediate save to DB, wait for profile completion
+          activeTab.value = 'feed';
+        } else {
+          // Normal phone login but user not found (unlikely if registered properly)
+          currentUser.value.phone = data.phone;
+          isAuthenticated.value = true;
+          localStorage.setItem('up_auth', 'true');
+          activeTab.value = 'feed';
+        }
+      } catch (e) {
+        console.error("Login error:", e);
+      }
+    };
+
+    const handleRegister = async (data: any) => {
+      try {
+        const newUser = {
+          ...currentUser.value,
+          name: data.name,
+          phone: data.phone,
+          faculty: data.faculty,
+          level: data.level,
+          hasStory: false,
+          vibesReceived: 0,
+          upPoints: 0,
+          isProfileComplete: false
+        };
+
+        currentUser.value = newUser;
+        isAuthenticated.value = true;
+        localStorage.setItem('up_auth', 'true');
+        localStorage.setItem('up_profile', JSON.stringify(newUser));
+        activeTab.value = 'feed';
+      } catch (e) {
+        console.error("Register bias:", e);
+      }
+    };
+
+    const handleProfileComplete = async (extraData: any) => {
+      try {
+        const updatedUser = { ...currentUser.value, ...extraData, isProfileComplete: true };
+        await setDoc(doc(db_firebase, 'users', updatedUser.phone), updatedUser);
+        currentUser.value = updatedUser;
+        localStorage.setItem('up_profile', JSON.stringify(updatedUser));
+        activeTab.value = 'feed';
+      } catch (e) {
+        console.error("Error finalizing profile:", e);
+      }
     };
 
     const handleLogout = () => {
-      isAuthenticated.value = false;
-      localStorage.setItem('up_auth', 'false');
-      activeTab.value = 'feed';
+      if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) {
+        isAuthenticated.value = false;
+        localStorage.setItem('up_auth', 'false');
+        localStorage.removeItem('up_profile');
+        activeTab.value = 'feed';
+      }
     };
 
     const toggleTheme = () => {
@@ -95,8 +207,20 @@ export default defineComponent({
 
     const renderMainContent = () => {
       if (!isAuthenticated.value) {
-        if (activeTab.value === 'auth') return h(AuthView, { onLogin: handleLogin, onBack: () => activeTab.value = 'feed' });
+        if (activeTab.value === 'auth') return h(AuthView, {
+          onLogin: handleLogin,
+          onRegister: handleRegister,
+          onBack: () => activeTab.value = 'feed'
+        });
         return h(PublicFeedView, { onJoin: () => activeTab.value = 'auth' });
+      }
+
+      // Profile Completion Flow
+      if (!currentUser.value.isProfileComplete) {
+        return h(ProfileSetupView, {
+          user: currentUser.value,
+          onComplete: handleProfileComplete
+        });
       }
 
       switch (activeTab.value) {
@@ -125,6 +249,7 @@ export default defineComponent({
           onBack: () => activeTab.value = 'feed',
           onNavigate: (target: string) => activeTab.value = target as any
         });
+        case 'admin_dashboard': return h(AdminDashboardView, { onBack: () => activeTab.value = 'hub' });
         case 'missions': return h(MissionsView, { onBack: () => activeTab.value = 'hub' });
         case 'resto': return h(RestoWaitView, { onBack: () => activeTab.value = 'hub' });
         case 'crush': return h(SecretCrushView, { onBack: () => activeTab.value = 'hub' });
@@ -181,8 +306,9 @@ export default defineComponent({
 
       isAuthenticated.value ? h(Drawer, {
         isOpen: isDrawerOpen.value,
+        userRole: currentUser.value.role,
         onClose: () => isDrawerOpen.value = false,
-        onSelect: (t) => {
+        onSelect: (t: any) => {
           if (t === 'install') {
             window.dispatchEvent(new CustomEvent('trigger-pwa-install'));
           } else {

@@ -12,6 +12,18 @@ export default defineComponent({
       }
     };
 
+    const handleShare = async () => {
+      try {
+        await navigator.share({
+          title: 'Flammes UP - Parakou',
+          text: 'Rejoins-moi sur le réseau social étudiant de l\'Université de Parakou ! 🔥',
+          url: window.location.origin
+        });
+      } catch (err) {
+        console.error("Partage échoué:", err);
+      }
+    };
+
     const primaryServices = [
       { id: 'crush', title: 'Flamme Secrète', icon: 'favorite', color: 'bg-gradient-to-tr from-pink-500 to-rose-600', subtitle: 'Qui a un crush sur toi ?', hot: true },
       { id: 'facematch', title: 'Face Match UP', icon: 'face', color: 'bg-gradient-to-tr from-blue-500 to-indigo-600', subtitle: 'Le top des vibreurs campus', new: true },
@@ -35,7 +47,7 @@ export default defineComponent({
       ]),
 
       h('div', { class: "px-5 -mt-8 space-y-6 relative z-10" }, [
-        h('div', { class: "space-y-3" }, 
+        h('div', { class: "space-y-3" },
           primaryServices.map(s => h('button', {
             onClick: () => emit('select', s.id),
             class: "w-full flex items-center gap-5 p-5 bg-white dark:bg-[#1a1d23] rounded-[30px] shadow-xl border border-white dark:border-white/5 active:scale-[0.97] transition-all ios-blur"
@@ -55,7 +67,7 @@ export default defineComponent({
           ]))
         ),
 
-        h('div', { class: "grid grid-cols-2 gap-3" }, 
+        h('div', { class: "grid grid-cols-2 gap-3" },
           gridServices.map(s => h('button', {
             onClick: () => emit('select', s.id),
             class: "bg-white dark:bg-[#1a1d23]/50 p-4 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-sm flex flex-col items-start gap-3 active:scale-95 transition-all ios-blur"
@@ -71,17 +83,48 @@ export default defineComponent({
         ),
 
         h('section', { class: "pt-4" }, [
+          h('h3', { class: "text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-4 ml-2" }, 'Installation Native'),
+          h('button', {
+            onClick: () => window.open(window.location.origin + '/flammes-up.apk', '_blank'),
+            class: "w-full bg-primary/10 border border-primary/20 p-5 rounded-[28px] flex items-center gap-4 active:scale-[0.98] transition-all"
+          }, [
+            h('div', { class: "w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg" }, [
+              h('span', { class: "material-icons-round" }, 'android')
+            ]),
+            h('div', { class: "text-left" }, [
+              h('p', { class: "font-black text-sm text-primary" }, "Télécharger l'APK"),
+              h('p', { class: "text-[10px] opacity-60" }, "Version Android native pour Parakou")
+            ]),
+            h('span', { class: "material-icons-round ml-auto text-primary/30" }, 'download')
+          ]),
+
+          h('button', {
+            onClick: handleShare,
+            class: "w-full bg-[#128C7E]/10 border border-[#128C7E]/20 p-5 rounded-[28px] flex items-center gap-4 active:scale-[0.98] transition-all mt-3"
+          }, [
+            h('div', { class: "w-10 h-10 bg-[#128C7E] text-white rounded-xl flex items-center justify-center shadow-lg" }, [
+              h('span', { class: "material-icons-round" }, 'share')
+            ]),
+            h('div', { class: "text-left" }, [
+              h('p', { class: "font-black text-sm text-[#128C7E]" }, "Partager l'App"),
+              h('p', { class: "text-[10px] opacity-60" }, "Invite tes amis sur le campus")
+            ]),
+            h('span', { class: "material-icons-round ml-auto text-[#128C7E]/30" }, 'send')
+          ])
+        ]),
+
+        h('section', { class: "pt-4" }, [
           h('h3', { class: "text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-4 ml-2" }, 'Urgences & Sécurité'),
           h('div', { class: "grid grid-cols-2 gap-3" }, [
-            h('button', { 
+            h('button', {
               onClick: () => handleEmergency('l’infirmerie', '112'),
-              class: "bg-red-500/10 border border-red-500/20 p-5 rounded-2xl flex items-center gap-3 text-red-500 font-black text-xs active:scale-95 transition-all" 
+              class: "bg-red-500/10 border border-red-500/20 p-5 rounded-2xl flex items-center gap-3 text-red-500 font-black text-xs active:scale-95 transition-all"
             }, [
               h('span', { class: "material-icons-round text-lg" }, 'medical_services'), 'Infirmerie'
             ]),
-            h('button', { 
+            h('button', {
               onClick: () => handleEmergency('le poste de sécurité', '117'),
-              class: "bg-slate-500/10 border border-slate-500/20 p-5 rounded-2xl flex items-center gap-3 text-slate-500 font-black text-xs active:scale-95 transition-all" 
+              class: "bg-slate-500/10 border border-slate-500/20 p-5 rounded-2xl flex items-center gap-3 text-slate-500 font-black text-xs active:scale-95 transition-all"
             }, [
               h('span', { class: "material-icons-round text-lg" }, 'security'), 'Sécurité'
             ])

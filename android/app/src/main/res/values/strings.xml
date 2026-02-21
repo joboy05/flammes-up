@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Flammes UP</string>
+    <string name="title_activity_main">Flammes UP</string>
+    <string name="package_name">com.flammesup.app</string>
+    <string name="custom_url_scheme">com.flammesup.app</string>
+</resources>

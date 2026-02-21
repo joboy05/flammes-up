@@ -3,11 +3,12 @@ import { defineComponent, h } from 'vue';
 
 export default defineComponent({
   name: 'Drawer',
-  props: { isOpen: Boolean },
+  props: { isOpen: Boolean, userRole: String },
   emits: ['close', 'select'],
   setup(props, { emit }) {
     const items = [
       { id: 'feed', icon: 'home', label: 'Flux Campus' },
+      ...(props.userRole === 'admin' ? [{ id: 'admin_dashboard', icon: 'dashboard_customize', label: 'Arène Admin' }] : []),
       { id: 'confessions', icon: 'forum', label: 'Confessions UP' },
       { id: 'hub', icon: 'apps', label: 'Tous les Services' },
       { id: 'marketplace', icon: 'storefront', label: 'Marché Étudiant' },

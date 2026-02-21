@@ -1,27 +1,22 @@
-
-import { defineComponent, ref, onMounted, h } from 'vue';
-import { FaceMatchItem } from '../types';
+import { defineComponent, ref, onMounted, onUnmounted, h } from 'vue';
+import { db } from '../services/db';
+import { UserProfile } from '../types';
 
 export default defineComponent({
   name: 'LeaderboardView',
   emits: ['back'],
   setup(props, { emit }) {
-    const topStudents = ref<FaceMatchItem[]>([
-      { id: '3', name: 'Sarah M.', faculty: 'FSS', flames: 2100, image: 'assets/avatar-2.svg' },
-      { id: '4', name: 'Aicha K.', faculty: 'FA', flames: 1560, image: 'assets/avatar-2.svg' },
-      { id: '1', name: 'Zainab B.', faculty: 'FLASH', flames: 1245, image: 'assets/avatar-2.svg' },
-      { id: '2', name: 'Karim L.', faculty: 'FDSP', flames: 890, image: 'assets/avatar-1.svg' },
-    ]);
+    const topStudents = ref<UserProfile[]>([]);
+    let unsubscribe: any = null;
 
     onMounted(() => {
-      const savedVibes = localStorage.getItem('up_facematch_vibes');
-      if (savedVibes) {
-        const parsedVibes = JSON.parse(savedVibes);
-        topStudents.value = topStudents.value.map(item => ({
-          ...item,
-          flames: parsedVibes[item.id] || item.flames
-        })).sort((a, b) => b.flames - a.flames);
-      }
+      unsubscribe = db.subscribeLeaderboard((users) => {
+        topStudents.value = users;
+      });
+    });
+
+    onUnmounted(() => {
+      if (unsubscribe) unsubscribe();
     });
 
     return () => h('div', { class: "min-h-full bg-white dark:bg-[#0f1115] flex flex-col" }, [
@@ -40,8 +35,11 @@ export default defineComponent({
         }, [
           h('div', { class: "w-10 h-10 flex items-center justify-center font-black text-xl italic text-primary/30" }, `#${idx + 1}`),
           h('div', { class: "relative" }, [
-             h('img', { src: student.image, class: "w-14 h-14 rounded-full border-2 border-primary/20 object-cover" }),
-             idx === 0 ? h('span', { class: "absolute -top-1 -right-1 material-icons-round text-yellow-500 text-xl" }, 'workspace_premium') : null
+            h('img', {
+              src: student.avatar || 'assets/default-avatar.svg',
+              class: "w-14 h-14 rounded-full border-2 border-primary/20 object-cover bg-slate-100"
+            }),
+            idx === 0 ? h('span', { class: "absolute -top-1 -right-1 material-icons-round text-yellow-500 text-xl" }, 'workspace_premium') : null
           ]),
           h('div', { class: "flex-1" }, [
             h('h3', { class: "font-black text-lg" }, student.name),
@@ -49,8 +47,8 @@ export default defineComponent({
           ]),
           h('div', { class: "text-right" }, [
             h('div', { class: "flex items-center justify-end gap-1 text-primary" }, [
-               h('span', { class: "material-icons-round text-lg" }, 'whatshot'),
-               h('span', { class: "font-black" }, student.flames)
+              h('span', { class: "material-icons-round text-lg" }, 'whatshot'),
+              h('span', { class: "font-black" }, student.vibesReceived)
             ]),
             h('p', { class: "text-[9px] font-medium opacity-40 uppercase" }, "Vibes")
           ])

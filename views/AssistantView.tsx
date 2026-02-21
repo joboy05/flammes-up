@@ -11,6 +11,7 @@ export default defineComponent({
     const userInput = ref('');
     const isLoading = ref(false);
     const scrollRef = ref(null);
+    const selectedModel = ref<'gemini' | 'groq'>('gemini');
 
     const scrollToBottom = async () => {
       await nextTick();
@@ -31,11 +32,6 @@ export default defineComponent({
       await scrollToBottom();
 
       try {
-        const apiKey = (process.env.API_KEY as string);
-        if (!apiKey) throw new Error("API Key missing");
-
-        const ai = new GoogleGenAI({ apiKey });
-
         const SYSTEM_PROMPT = `Tu es ChatUP, l'assistant officiel de l'app "Flammes UP" à l'Université de Parakou.
 TON PERSONNAGE :
 - Tu es un étudiant master à l'UP, très cool, serviable mais "branché".
@@ -44,31 +40,87 @@ TON PERSONNAGE :
 - Mission : Aider les nouveaux, partager les bons plans (bourse, inscriptions) et expliquer les fonctionnalités de l'app (FaceMatch, Secret Crush, Marché).
 - Règle d'or : Sois toujours positif et encourageant, comme un grand frère.`;
 
-        const contents = [
-          { role: 'user', parts: [{ text: SYSTEM_PROMPT + '\n\n---\n\nWopé le boss !' }] },
-          { role: 'model', parts: [{ text: "Wopé le boss ! Je suis ChatUP, ton majordome digital à Parakou. Y'a quoi ?" }] },
-          ...messages.value.map(m => ({ role: m.role, parts: [{ text: m.text }] }))
-        ];
+        if (selectedModel.value === 'gemini') {
+          const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
+          if (!apiKey) throw new Error("API Key missing");
+          const ai = new GoogleGenAI(apiKey);
+          const lastUserMessage = messages.value[messages.value.length - 1].text;
+          const contents = [
+            { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
+            { role: 'model', parts: [{ text: "Wopé le boss ! Je suis ChatUP, ton majordome digital à Parakou. Y'a quoi ?" }] },
+            ...messages.value.slice(0, -1).map(m => ({ role: m.role, parts: [{ text: m.text }] })),
+            { role: 'user', parts: [{ text: lastUserMessage }] }
+          ];
 
-        const streamingResult = await ai.models.generateContentStream({
-          model: 'gemini-1.5-flash',
-          contents
-        });
+          const streamingResult = await ai.models.generateContentStream({
+            model: 'gemini-1.5-flash',
+            contents
+          });
 
-        const aiMessage = ref({ role: 'model', text: '' });
-        messages.value.push(aiMessage.value);
+          const aiMessage = ref({ role: 'model', text: '' });
+          messages.value.push(aiMessage.value);
 
-        for await (const chunk of streamingResult) {
-          const t = chunk.text;
-          if (t) {
-            aiMessage.value.text += t;
-            await scrollToBottom();
+          for await (const chunk of streamingResult) {
+            const t = chunk.text;
+            if (t) {
+              aiMessage.value.text += t;
+              await scrollToBottom();
+            }
+          }
+        } else {
+          const groqKey = import.meta.env.VITE_GROQ_API_KEY;
+          if (!groqKey) throw new Error("Groq API Key missing");
+
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${groqKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: "llama-3.3-70b-versatile",
+              messages: [
+                { role: "system", content: SYSTEM_PROMPT },
+                ...messages.value.slice(0, -1).map(m => ({
+                  role: m.role === 'model' ? 'assistant' : 'user',
+                  content: m.text
+                }))
+              ],
+              stream: true
+            })
+          });
+
+          if (!response.ok) throw new Error("Groq API Error");
+
+          const aiMessage = ref({ role: 'model', text: '' });
+          messages.value.push(aiMessage.value);
+
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+
+          while (reader) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n').filter(line => line.trim() !== '');
+            for (const line of lines) {
+              if (line.includes('[DONE]')) continue;
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  const content = data.choices[0]?.delta?.content;
+                  if (content) {
+                    aiMessage.value.text += content;
+                    await scrollToBottom();
+                  }
+                } catch (e) { }
+              }
+            }
           }
         }
-
       } catch (e: any) {
         console.error("AI Error:", e);
-        messages.value.push({ role: 'model', text: "Aïe, mon cerveau chauffe un peu ! Réessaie plus tard, le boss." });
+        messages.value.push({ role: 'model', text: "Aïe, mon cerveau chauffe un peu ! " + (e.message || "Réessaie plus tard, le boss.") });
       } finally {
         isLoading.value = false;
         await scrollToBottom();
@@ -85,7 +137,16 @@ TON PERSONNAGE :
         ]),
         h('div', [
           h('h1', { class: "text-lg font-black text-primary leading-tight" }, 'ChatUP'),
-          h('p', { class: "text-[9px] font-black uppercase opacity-40" }, 'Majordome Digital • Parakou')
+          h('div', { class: "flex items-center gap-2 mt-0.5" }, [
+            h('button', {
+              onClick: () => selectedModel.value = 'gemini',
+              class: `text-[8px] font-black uppercase px-2 py-0.5 rounded-full border transition-all ${selectedModel.value === 'gemini' ? 'bg-primary text-white border-primary' : 'border-primary/20 text-primary/40'}`
+            }, 'Gemini'),
+            h('button', {
+              onClick: () => selectedModel.value = 'groq',
+              class: `text-[8px] font-black uppercase px-2 py-0.5 rounded-full border transition-all ${selectedModel.value === 'groq' ? 'bg-primary text-white border-primary' : 'border-primary/20 text-primary/40'}`
+            }, 'Groq (Llama 3)')
+          ])
         ])
       ]),
 

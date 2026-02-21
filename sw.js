@@ -16,6 +16,11 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // Ne pas intercepter les requêtes vers Firebase ou d'autres domaines externes
+    if (!event.request.url.startsWith(self.location.origin)) {
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request).then((response) => {
             return response || fetch(event.request);
