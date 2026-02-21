@@ -1,0 +1,9 @@
+
+{
+  "name": "Flammes UP",
+  "description": "A student-centric social network and marketplace app designed for students in Parakou, featuring low-data mode, anonymous confessions, and a vibrant campus marketplace.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

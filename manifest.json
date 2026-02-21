@@ -1,0 +1,17 @@
+{
+  "name": "Flammes UP - Parakou",
+  "short_name": "Flammes UP",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#ee2b2b",
+  "description": "Le réseau social étudiant de l'Université de Parakou.",
+  "icons": [
+    {
+      "src": "assets/logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

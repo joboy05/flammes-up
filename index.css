@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #ee2b2b;
+  --color-accent: #ff4400;
+  --color-background-dark: #0f1115;
+  --font-lexend: "Lexend", sans-serif;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply antialiased font-lexend;
+    margin: 0;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .ios-blur {
+    @apply backdrop-blur-2xl bg-white/70 dark:bg-black/70;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-tr from-primary to-accent;
+  }
+}
+
+/* Red-White Luxury Gradients */
+.card-luxury {
+  @apply bg-white dark:bg-[#1a1d23] border border-slate-100 dark:border-white/5 shadow-xl transition-all duration-300;
+}
+
+.btn-primary {
+  @apply bg-primary text-white font-black px-6 py-4 rounded-[20px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-[10px];
+}
+
+/* Animations for FaceMatch */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
