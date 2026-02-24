@@ -14,6 +14,7 @@ export interface UserProfile {
   hasStory: boolean;
   isProfileComplete?: boolean;
   role: 'user' | 'admin';
+  gallery?: string[]; // URLs or Base64 media
 }
 
 export interface Comment {

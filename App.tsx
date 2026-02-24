@@ -1,5 +1,6 @@
 
 import { defineComponent, ref, onMounted, h, watch } from 'vue';
+import anime from 'animejs';
 import TopNav from './components/TopNav';
 import TabBar from './components/TabBar';
 import DesktopSidebar from './components/DesktopSidebar';
@@ -7,8 +8,8 @@ import RightPanel from './components/RightPanel';
 import Global3DBackground from './components/Global3DBackground';
 import Drawer from './components/Drawer';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import ToastContainer from './components/ToastContainer';
 import FeedView from './views/FeedView';
-// ... rest of imports
 import MarketplaceView from './views/MarketplaceView';
 import ConfessionsView from './views/ConfessionsView';
 import ProfileView from './views/ProfileView';
@@ -32,167 +33,171 @@ import SecretCrushView from './views/SecretCrushView';
 import FaceMatchView from './views/FaceMatchView';
 import AdminDashboardView from './views/AdminDashboardView';
 import LeaderboardView from './views/LeaderboardView';
+import DiscoveryView from './views/DiscoveryView';
+import ChatBubbles, { ChatBubble } from './components/ChatBubbles';
 
-import { db_firebase } from './services/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { api } from './services/api';
+import { ws } from './services/socket';
+import { toast } from './services/toast';
 
 export default defineComponent({
   name: 'App',
   setup() {
     const activeTab = ref('feed');
-    const isAuthenticated = ref(localStorage.getItem('up_auth') === 'true');
+    const isAuthenticated = ref(api.isLoggedIn());
     const isDarkMode = ref(true);
     const isEcoMode = ref(false);
+    const activeBubbles = ref<ChatBubble[]>([]);
     const isDrawerOpen = ref(false);
 
     const savedProfile = localStorage.getItem('up_profile');
-    const currentUser = ref(savedProfile ? JSON.parse(savedProfile) : {
-      name: 'Moussa Bakary',
-      phone: '0197000000',
-      faculty: 'FLASH (Lettres & Arts)',
-      level: 'Licence 2',
-      isResident: true,
-      maritalStatus: 'celibataire',
+    let initialUser = {
+      name: 'Étudiant UP',
+      phone: '',
+      faculty: '',
+      level: '',
+      residence: 'externe',
+      maritalStatus: 'non_defini',
       avatar: '',
-      bio: 'Étudiant passionné par la tech et le campus de Parakou.',
-      vibesReceived: 42,
-      hasStory: true
-    });
+      bio: '',
+      vibesReceived: 0,
+      upPoints: 0,
+      hasStory: false,
+      isProfileComplete: false,
+      role: 'user'
+    };
+
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        if (parsed && typeof parsed === 'object') {
+          initialUser = { ...initialUser, ...parsed };
+        }
+      } catch (e) {
+        localStorage.removeItem('up_profile');
+      }
+    }
+    const currentUser = ref(initialUser);
 
     watch(currentUser, (newVal) => {
       localStorage.setItem('up_profile', JSON.stringify(newVal));
     }, { deep: true });
 
-    const showLoader = (show: boolean) => {
+    const hidePreloader = () => {
       const preloader = document.getElementById('preloader');
       if (preloader) {
-        if (show) {
-          preloader.style.display = 'flex';
-          preloader.style.visibility = 'visible';
-          preloader.style.opacity = '1';
-        } else {
-          (anime as any)({
-            targets: preloader,
-            opacity: [1, 0],
-            easing: 'easeInOutQuad',
-            duration: 500,
-            complete: () => { preloader.style.display = 'none'; }
-          });
-        }
+        preloader.style.opacity = '0';
+        preloader.style.pointerEvents = 'none';
+        setTimeout(() => {
+          preloader.style.display = 'none';
+        }, 500);
       }
     };
 
-    onMounted(() => {
+    onMounted(async () => {
       document.documentElement.classList.add('dark');
+
       window.addEventListener('nav', (e: any) => {
-        showLoader(true);
         activeTab.value = (e as any).detail;
-        setTimeout(() => showLoader(false), 800);
       });
 
-      // --- FORCE ADMIN ROLE FOR THE DEDICATED ACC ---
-      if (currentUser.value.phone === '0151852420' && currentUser.value.role !== 'admin') {
-        currentUser.value.role = 'admin';
-        localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
+      // Si déjà authentifié (token JWT valide), récupérer le profil depuis le backend
+      if (isAuthenticated.value) {
+        try {
+          const data = await api.getMe();
+          if (data.user) {
+            currentUser.value = { ...currentUser.value, ...data.user };
+            localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
+          }
+          // Connecter WebSocket
+          ws.connect();
+        } catch (err) {
+          // Token invalide/expiré, déconnecter
+          console.warn('Token expiré, reconnexion nécessaire');
+          api.logout();
+          isAuthenticated.value = false;
+        }
       }
 
-      setTimeout(() => {
-        const preloader = document.getElementById('preloader');
-        if (preloader) {
-          preloader.style.opacity = '0';
-          setTimeout(() => preloader.style.visibility = 'hidden', 500);
-        }
-      }, 1500);
+      // Force hide preloader after mount
+      hidePreloader();
     });
 
-    const handleLogin = async (data: { phone: string; password?: string, googleUser?: any }) => {
+    const handleLogin = async (data: { phone: string; password: string }) => {
       try {
-        showLoader(true);
-        const id = data.phone;
-        const userDoc = await getDoc(doc(db_firebase, 'users', id));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          if (id === '0151852420') {
-            if (data.password && data.password !== 'Azerty123') {
-              alert("Mot de passe incorrect pour le compte administrateur.");
-              showLoader(false);
-              return;
-            }
-            userData.role = 'admin'; // Force role admin
-          }
-          currentUser.value = { ...currentUser.value, ...userData };
+        const result = await api.login(data.phone, data.password);
+        if (result.user) {
+          currentUser.value = { ...currentUser.value, ...result.user };
           isAuthenticated.value = true;
           localStorage.setItem('up_auth', 'true');
           localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
-          activeTab.value = 'hub'; // Redirect to Hub where the admin link is prominent
-        } else if (data.googleUser) {
-          // Google user specifically needs special handling if first time
-          const newUser = {
-            ...currentUser.value,
-            name: data.googleUser.displayName || 'Utilisateur Google',
-            phone: id,
-            avatar: data.googleUser.photoURL || '',
-            isProfileComplete: false
-          };
-          currentUser.value = newUser;
-          isAuthenticated.value = true;
-          localStorage.setItem('up_auth', 'true');
-          // No immediate save to DB, wait for profile completion
-          activeTab.value = 'feed';
-        } else {
-          // Normal phone login but user not found (unlikely if registered properly)
-          currentUser.value.phone = data.phone;
-          isAuthenticated.value = true;
-          localStorage.setItem('up_auth', 'true');
-          activeTab.value = 'feed';
+          ws.connect();
+          activeTab.value = currentUser.value.isProfileComplete ? 'feed' : 'feed';
         }
-      } catch (e) {
-        console.error("Login error:", e);
+      } catch (err: any) {
+        toast.error(err.message || 'Erreur de connexion');
       }
     };
 
     const handleRegister = async (data: any) => {
       try {
-        const newUser = {
-          ...currentUser.value,
-          name: data.name,
+        const result = await api.register({
           phone: data.phone,
+          password: data.password,
+          name: data.name,
           faculty: data.faculty,
-          level: data.level,
-          hasStory: false,
-          vibesReceived: 0,
-          upPoints: 0,
-          isProfileComplete: false
-        };
+          level: data.level
+        });
+        if (result.user) {
+          currentUser.value = { ...currentUser.value, ...result.user };
+          isAuthenticated.value = true;
+          localStorage.setItem('up_auth', 'true');
+          localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
+          ws.connect();
+          activeTab.value = 'feed';
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'Erreur d\'inscription');
+      }
+    };
 
-        currentUser.value = newUser;
-        isAuthenticated.value = true;
-        localStorage.setItem('up_auth', 'true');
-        localStorage.setItem('up_profile', JSON.stringify(newUser));
-        activeTab.value = 'feed';
-      } catch (e) {
-        console.error("Register bias:", e);
+    const handleGoogleLogin = async (idToken: string) => {
+      try {
+        const result = await api.googleLogin(idToken);
+        if (result.user) {
+          currentUser.value = { ...currentUser.value, ...result.user };
+          isAuthenticated.value = true;
+          localStorage.setItem('up_auth', 'true');
+          localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
+          ws.connect();
+          activeTab.value = currentUser.value.isProfileComplete ? 'feed' : 'feed';
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'Erreur de connexion Google');
       }
     };
 
     const handleProfileComplete = async (extraData: any) => {
       try {
-        const updatedUser = { ...currentUser.value, ...extraData, isProfileComplete: true };
-        await setDoc(doc(db_firebase, 'users', updatedUser.phone), updatedUser);
-        currentUser.value = updatedUser;
-        localStorage.setItem('up_profile', JSON.stringify(updatedUser));
+        const result = await api.updateProfile({ ...extraData, isProfileComplete: true });
+        if (result.user) {
+          currentUser.value = { ...currentUser.value, ...result.user };
+          localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
+        }
         activeTab.value = 'feed';
-      } catch (e) {
-        console.error("Error finalizing profile:", e);
+      } catch (err: any) {
+        toast.error(err.message || 'Erreur lors de la finalisation');
       }
     };
 
     const handleLogout = () => {
       if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) {
+        api.logout();
+        ws.disconnect();
         isAuthenticated.value = false;
-        localStorage.setItem('up_auth', 'false');
-        localStorage.removeItem('up_profile');
+        currentUser.value = { ...initialUser };
         activeTab.value = 'feed';
+        toast.info('Déconnecté');
       }
     };
 
@@ -202,20 +207,19 @@ export default defineComponent({
       else document.documentElement.classList.remove('dark');
     };
 
-    // Vues plein écran (Sans Navbar ni Tabbar)
-    const fullScreenViews = ['auth', 'facematch', 'chat_detail', 'assistant', 'crush', 'legal'];
+    const fullScreenViews = ['auth', 'facematch', 'chat_detail', 'assistant', 'crush', 'legal', 'discovery'];
 
     const renderMainContent = () => {
       if (!isAuthenticated.value) {
         if (activeTab.value === 'auth') return h(AuthView, {
           onLogin: handleLogin,
           onRegister: handleRegister,
+          onGoogleLogin: handleGoogleLogin,
           onBack: () => activeTab.value = 'feed'
         });
         return h(PublicFeedView, { onJoin: () => activeTab.value = 'auth' });
       }
 
-      // Profile Completion Flow
       if (!currentUser.value.isProfileComplete) {
         return h(ProfileSetupView, {
           user: currentUser.value,
@@ -228,7 +232,10 @@ export default defineComponent({
         case 'hub': return h(HubView, { onSelect: (t) => activeTab.value = t as any });
         case 'marketplace': return h(MarketplaceView, { isEcoMode: isEcoMode.value });
         case 'confessions': return h(ConfessionsView);
-        case 'messages': return h(MessagesView, { onOpenChat: (id: string) => activeTab.value = 'chat_detail' });
+        case 'messages': return h(MessagesView, {
+          onOpenChat: (id: string) => activeTab.value = 'chat_detail',
+          onOpenDiscovery: () => activeTab.value = 'discovery'
+        });
         case 'facematch': return h(FaceMatchView, { onBack: () => activeTab.value = 'feed', userVibes: currentUser.value.vibesReceived });
         case 'profile': return h(ProfileView, {
           user: currentUser.value,
@@ -254,6 +261,24 @@ export default defineComponent({
         case 'resto': return h(RestoWaitView, { onBack: () => activeTab.value = 'hub' });
         case 'crush': return h(SecretCrushView, { onBack: () => activeTab.value = 'hub' });
         case 'legal': return h(LegalView, { onBack: () => activeTab.value = 'profile' });
+        case 'discovery': return h(DiscoveryView, {
+          onBack: () => activeTab.value = 'hub',
+          onStartChat: (phone: string, name: string, avatar: string) => {
+            const myId = currentUser.value.phone;
+            const otherId = phone;
+            const convId = [myId, otherId].sort().join('-');
+            activeTab.value = 'chat_detail';
+            (window as any)._activeConvId = convId;
+
+            if (!activeBubbles.value.find(b => b.id === convId)) {
+              activeBubbles.value.push({
+                id: convId,
+                name: name || 'Contact',
+                avatar: avatar || ''
+              });
+            }
+          }
+        });
         case 'leaderboard': return h(LeaderboardView, { onBack: () => activeTab.value = 'hub' });
         case 'events': return h(EventsView, { onBack: () => activeTab.value = 'hub' });
         case 'resources': return h(ResourcesView, { onBack: () => activeTab.value = 'hub' });
@@ -265,6 +290,9 @@ export default defineComponent({
       class: ["flex flex-col h-screen font-display transition-colors duration-500 bg-white dark:bg-[#0f1115] text-slate-900 dark:text-white overflow-hidden"]
     }, [
       h(Global3DBackground),
+
+      // Toast notifications
+      h(ToastContainer),
 
       isAuthenticated.value && !fullScreenViews.includes(activeTab.value) ? h(TopNav, {
         isDarkMode: isDarkMode.value,
@@ -318,7 +346,19 @@ export default defineComponent({
         }
       }) : null,
 
-      h(PWAInstallPrompt)
+      h(PWAInstallPrompt),
+
+      // Global Chat Bubbles
+      h(ChatBubbles, {
+        bubbles: activeBubbles.value,
+        onOpen: (id: string) => {
+          activeTab.value = 'chat_detail';
+          (window as any)._activeConvId = id;
+        },
+        onClose: (id: string) => {
+          activeBubbles.value = activeBubbles.value.filter(b => b.id !== id);
+        }
+      })
     ]);
   }
 });

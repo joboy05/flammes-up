@@ -17,12 +17,12 @@ export default defineComponent({
     });
 
     return () => h('header', {
-      class: "sticky top-0 z-[60] bg-white/95 dark:bg-[#0f1115] ios-blur border-b border-white/5 px-4 py-4 flex items-center justify-between shadow-lg transition-colors duration-500"
+      class: "sticky top-0 z-[60] bg-white/95 dark:bg-[#0f1115]/95 ios-blur border-b border-black/5 dark:border-white/5 px-4 py-4 flex items-center justify-between shadow-lg transition-colors duration-500"
     }, [
       h('div', { class: "flex items-center gap-4" }, [
         h('button', {
           onClick: () => emit('openDrawer'),
-          class: "w-10 h-10 flex items-center justify-center text-slate-600 dark:text-white/70 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl active:scale-90 transition-all"
+          class: "w-10 h-10 flex items-center justify-center text-slate-600 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl active:scale-90 transition-all"
         }, [
           h('span', { class: "material-icons-round text-2xl" }, 'menu')
         ]),
@@ -31,7 +31,7 @@ export default defineComponent({
           class: "flex items-center gap-3 cursor-pointer group"
         }, [
           h('div', { class: "w-10 h-10 bg-primary rounded-[14px] flex items-center justify-center shadow-xl shadow-primary/20 group-active:scale-95 transition-all overflow-hidden" }, [
-            h('img', { src: 'assets/logo.svg', class: "w-full h-full object-cover scale-150" })
+            h('img', { src: 'assets/logo-new.png', class: "w-full h-full object-contain p-1" })
           ]),
           h('div', { class: "flex flex-col -space-y-1" }, [
             h('h1', { class: "text-lg font-black text-slate-900 dark:text-white tracking-tighter" }, 'FLAMMES UP'),

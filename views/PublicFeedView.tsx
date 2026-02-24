@@ -8,7 +8,6 @@ export default defineComponent({
   setup(props, { emit }) {
     onMounted(() => {
       // Animation de la couche externe
-      // Fix: Cast anime to any to resolve "not callable" error in TypeScript
       (anime as any)({
         targets: '#hero-flame-outer',
         d: [
@@ -23,7 +22,6 @@ export default defineComponent({
       });
 
       // Animation de la couche intermédiaire
-      // Fix: Cast anime to any to resolve "not callable" error in TypeScript
       (anime as any)({
         targets: '#hero-flame-inner',
         d: [
@@ -39,7 +37,6 @@ export default defineComponent({
       });
 
       // Animation du cœur (petit et vibrant)
-      // Fix: Cast anime to any to resolve "not callable" error in TypeScript
       (anime as any)({
         targets: '#hero-flame-core',
         d: [
@@ -55,8 +52,8 @@ export default defineComponent({
       });
     });
 
-    return () => h('div', { 
-      class: "relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-white dark:bg-[#0a0505] transition-colors duration-500" 
+    return () => h('div', {
+      class: "relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-white dark:bg-[#0a0505] transition-colors duration-500"
     }, [
       // Vibrant Gradients
       h('div', { class: "absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/10 dark:bg-primary/20 blur-[150px] rounded-full" }),
@@ -72,12 +69,12 @@ export default defineComponent({
             h('path', { id: "hero-flame-core", fill: "#ffcc00", d: "M50 100 C40 100 30 85 30 75 C30 65 50 40 50 40 C50 40 70 65 70 75 C70 85 60 100 50 100 Z" }),
           ])
         ]),
-        
+
         h('div', { class: "space-y-4 mb-12" }, [
           h('h1', { class: "text-6xl font-black tracking-tighter text-slate-900 dark:text-white" }, [
             'FLAMMES ', h('span', { class: "text-primary italic" }, 'UP')
           ]),
-          h('p', { class: "text-lg font-medium text-slate-500 dark:text-slate-400 leading-tight max-w-xs mx-auto" }, 
+          h('p', { class: "text-lg font-medium text-slate-500 dark:text-slate-400 leading-tight max-w-xs mx-auto" },
             "L'étincelle qui connecte tout le campus de Parakou."
           )
         ]),
@@ -103,7 +100,7 @@ export default defineComponent({
         ])
       ]),
 
-      h('p', { class: "absolute bottom-10 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.4em]" }, 
+      h('p', { class: "absolute bottom-10 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.4em]" },
         "DESIGNED BY JJTECH'S"
       )
     ]);

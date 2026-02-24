@@ -1,6 +1,8 @@
 
 import { defineComponent, ref, h, onMounted, onUnmounted } from 'vue';
 import { db } from '../services/db';
+import { toast } from '../services/toast';
+import { formatRelativeDate } from '../services/dates';
 
 interface Product {
   id: string;
@@ -11,6 +13,7 @@ interface Product {
   category: string;
   seller: string;
   description: string;
+  createdAt?: any;
 }
 
 const CATEGORIES = ['Tous', 'Électronique', 'Cours', 'Accessoires', 'Logement', 'Autre'];
@@ -25,6 +28,7 @@ export default defineComponent({
     const selectedProduct = ref<Product | null>(null);
     const activeCategory = ref('Tous');
     const isPosting = ref(false);
+    const isSubmitting = ref(false);
     const form = ref({ title: '', price: '', location: '', category: 'Électronique', description: '' });
     let unsubscribe: any = null;
 
@@ -43,19 +47,27 @@ export default defineComponent({
       : products.value.filter(p => p.category === activeCategory.value);
 
     const submitProduct = async () => {
-      if (!form.value.title.trim() || !form.value.price.trim() || !form.value.location.trim()) return;
-      const profile = db.getProfile();
-      const p: Partial<Product> = {
-        title: form.value.title.trim(),
-        price: form.value.price.trim(),
-        location: form.value.location.trim(),
-        category: form.value.category,
-        seller: profile.name,
-        description: form.value.description.trim() || 'Contactez-moi pour plus d\'infos.',
-      };
-      await (db as any).addProduct(p);
-      form.value = { title: '', price: '', location: '', category: 'Électronique', description: '' };
-      isPosting.value = false;
+      if (!form.value.title.trim() || !form.value.price.trim() || !form.value.location.trim() || isSubmitting.value) return;
+      isSubmitting.value = true;
+      try {
+        const profile = db.getProfile();
+        const p: Partial<Product> = {
+          title: form.value.title.trim(),
+          price: form.value.price.trim(),
+          location: form.value.location.trim(),
+          category: form.value.category,
+          seller: profile.name,
+          description: form.value.description.trim() || 'Contactez-moi pour plus d\'infos.',
+        };
+        await (db as any).addProduct(p);
+        form.value = { title: '', price: '', location: '', category: 'Électronique', description: '' };
+        isPosting.value = false;
+        toast.success("Produit mis en vente ! 🛍️");
+      } catch (err: any) {
+        toast.error("Erreur lors de la mise en vente.");
+      } finally {
+        isSubmitting.value = false;
+      }
     };
 
     const categoryIcons: Record<string, string> = {
@@ -134,9 +146,12 @@ export default defineComponent({
             h('span', { class: "text-[8px] font-black uppercase text-primary/60 tracking-widest" }, p.category),
             h('h3', { class: "text-[11px] font-bold truncate mt-0.5" }, p.title),
             h('p', { class: "text-primary font-black text-sm mt-1" }, [p.price, h('span', { class: "text-[8px] opacity-40 ml-1" }, 'FCFA')]),
-            h('div', { class: "flex items-center gap-1 opacity-40 mt-1" }, [
-              h('span', { class: "material-icons-round text-[10px]" }, 'location_on'),
-              h('span', { class: "text-[9px] font-bold" }, p.location)
+            h('div', { class: "flex items-center justify-between mt-1 opacity-40" }, [
+              h('div', { class: "flex items-center gap-1" }, [
+                h('span', { class: "material-icons-round text-[10px]" }, 'location_on'),
+                h('span', { class: "text-[9px] font-bold" }, p.location)
+              ]),
+              h('span', { class: "text-[8px] font-bold" }, formatRelativeDate(p.createdAt))
             ])
           ])
         ]))
@@ -182,9 +197,12 @@ export default defineComponent({
           ]),
           h('button', {
             onClick: submitProduct,
-            disabled: !form.value.title.trim() || !form.value.price.trim() || !form.value.location.trim(),
-            class: "w-full bg-primary text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 disabled:opacity-20 active:scale-95 transition-all"
-          }, "Mettre en vente")
+            disabled: !form.value.title.trim() || !form.value.price.trim() || !form.value.location.trim() || isSubmitting.value,
+            class: "w-full bg-primary text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 disabled:opacity-20 active:scale-95 transition-all flex items-center justify-center gap-2"
+          }, isSubmitting.value ? [
+            h('div', { class: "w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" }),
+            "Mise en vente..."
+          ] : "Mettre en vente")
         ])
       ]) : null,
 

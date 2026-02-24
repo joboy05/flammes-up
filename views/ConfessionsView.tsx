@@ -1,12 +1,15 @@
 
 import { defineComponent, ref, h, onMounted, onUnmounted } from 'vue';
 import { db, Confession } from '../services/db';
+import { toast } from '../services/toast';
+import { formatRelativeDate } from '../services/dates';
 
 export default defineComponent({
   name: 'ConfessionsView',
   setup() {
     const confessions = ref<Confession[]>([]);
     const isPosting = ref(false);
+    const isSubmitting = ref(false);
     const newConfession = ref('');
     let unsubscribe: any = null;
 
@@ -26,18 +29,25 @@ export default defineComponent({
     };
 
     const submitConfession = async () => {
-      if (!newConfession.value.trim()) return;
-      const anon = `Anonyme #${Math.floor(1000 + Math.random() * 9000)}`;
-      const c: Partial<Confession> = {
-        user: anon,
-        content: newConfession.value.trim(),
-        flames: 0,
-        isFlamedByMe: false,
-        time: "À l'instant"
-      };
-      await db.addConfession(c);
-      newConfession.value = '';
-      isPosting.value = false;
+      if (!newConfession.value.trim() || isSubmitting.value) return;
+      isSubmitting.value = true;
+      try {
+        const anon = `Anonyme #${Math.floor(1000 + Math.random() * 9000)}`;
+        const c: Partial<Confession> = {
+          user: anon,
+          content: newConfession.value.trim(),
+          flames: 0,
+          isFlamedByMe: false
+        };
+        await db.addConfession(c);
+        newConfession.value = '';
+        isPosting.value = false;
+        toast.success("Confession propagée... 🤫");
+      } catch (err: any) {
+        toast.error("Échec de la propagation.");
+      } finally {
+        isSubmitting.value = false;
+      }
     };
 
     return () => h('div', { class: "flex flex-col min-h-full" }, [
@@ -52,7 +62,7 @@ export default defineComponent({
           class: "bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-[30px] p-6 shadow-sm"
         }, [
           h('p', { class: "text-primary font-black text-[10px] uppercase tracking-widest mb-1" }, c.user),
-          h('p', { class: "text-[10px] opacity-30 font-bold mb-3" }, c.time),
+          h('p', { class: "text-[10px] opacity-30 font-bold mb-3" }, formatRelativeDate(c.createdAt || c.time)),
           h('p', { class: "text-sm leading-relaxed mb-6 text-slate-800 dark:text-slate-200 font-medium" }, c.content),
           h('div', { class: "flex items-center justify-between border-t border-slate-50 dark:border-white/5 pt-4" }, [
             h('div', { class: "flex items-center gap-2" }, [
@@ -85,9 +95,12 @@ export default defineComponent({
           }),
           h('button', {
             onClick: submitConfession,
-            disabled: !newConfession.value.trim(),
-            class: "w-full bg-primary text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 disabled:opacity-20 active:scale-95 transition-all"
-          }, "Publier anonymement")
+            disabled: !newConfession.value.trim() || isSubmitting.value,
+            class: "w-full bg-primary text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 disabled:opacity-20 active:scale-95 transition-all flex items-center justify-center gap-2"
+          }, isSubmitting.value ? [
+            h('div', { class: "w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" }),
+            "Propagation..."
+          ] : "Publier anonymement")
         ])
       ]) : null,
 

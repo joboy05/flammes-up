@@ -48,8 +48,10 @@ export default defineComponent({
         h('div', { class: "bg-white dark:bg-white/5 rounded-[40px] border border-slate-100 dark:border-white/5 overflow-hidden shadow-sm" }, [
           [
             { label: 'Téléphone', val: props.user.phone, icon: 'phone', color: 'text-blue-500' },
+            { label: 'Email', val: props.user.email || 'Non renseigné', icon: 'alternate_email', color: 'text-indigo-400' },
             { label: 'Faculté', val: props.user.faculty, icon: 'school', color: 'text-primary' },
-            { label: 'Statut Matrimonial', val: props.user.maritalStatus, icon: 'favorite', color: 'text-rose-500' },
+            { label: 'Niveau', val: props.user.level || 'Non défini', icon: 'trending_up', color: 'text-indigo-500' },
+            { label: 'Statut Matrimonial', val: props.user.maritalStatus === 'non_defini' ? 'Secret' : props.user.maritalStatus, icon: 'favorite', color: 'text-rose-500' },
             { label: 'Résidence', val: props.user.residence === 'externe' ? 'En ville (Externe)' : props.user.residence, icon: 'location_city', color: 'text-amber-500' }
           ].map((item, idx) => h('div', {
             class: `flex items-center gap-4 p-6 ${idx !== 0 ? 'border-t border-slate-100 dark:border-white/5' : ''}`
@@ -63,6 +65,19 @@ export default defineComponent({
             ])
           ]))
         ]),
+
+        // Section Galerie
+        props.user.gallery && props.user.gallery.length > 0 ? h('div', { class: "space-y-4" }, [
+          h('div', { class: "flex items-center justify-between px-2" }, [
+            h('h3', { class: "text-[10px] font-black uppercase tracking-widest opacity-40" }, 'Galerie Photos & Vidéos'),
+            h('span', { class: "text-[10px] font-bold text-primary" }, `${props.user.gallery.length} média(s)`)
+          ]),
+          h('div', { class: "grid grid-cols-2 gap-3" }, props.user.gallery.map((media: string) => h('div', {
+            class: "aspect-square rounded-[35px] overflow-hidden border border-slate-100 dark:border-white/5 shadow-sm bg-slate-50 dark:bg-white/5"
+          }, [
+            h('img', { src: media, class: "w-full h-full object-cover hover:scale-110 transition-transform duration-500" })
+          ])))
+        ]) : null,
 
         h('div', { class: "space-y-3" }, [
           h('button', {

@@ -1,6 +1,8 @@
 
 import { defineComponent, ref, h, onMounted, onUnmounted } from 'vue';
 import { db, Mission } from '../services/db';
+import { toast } from '../services/toast';
+import { formatRelativeDate } from '../services/dates';
 
 export default defineComponent({
   name: 'MissionsView',
@@ -8,6 +10,7 @@ export default defineComponent({
   setup(props, { emit }) {
     const missions = ref<Mission[]>([]);
     const isPosting = ref(false);
+    const isSubmitting = ref(false);
     const form = ref({ title: '', reward: '', location: '' });
     let unsubscribe: any = null;
 
@@ -26,19 +29,26 @@ export default defineComponent({
     };
 
     const submitMission = async () => {
-      if (!form.value.title.trim() || !form.value.reward.trim() || !form.value.location.trim()) return;
-      const profile = db.getProfile();
-      const m: Partial<Mission> = {
-        title: form.value.title.trim(),
-        reward: form.value.reward.trim(),
-        location: form.value.location.trim(),
-        user: profile.name,
-        time: "À l'instant",
-        isTaken: false
-      };
-      await db.addMission(m);
-      form.value = { title: '', reward: '', location: '' };
-      isPosting.value = false;
+      if (!form.value.title.trim() || !form.value.reward.trim() || !form.value.location.trim() || isSubmitting.value) return;
+      isSubmitting.value = true;
+      try {
+        const profile = db.getProfile();
+        const m: Partial<Mission> = {
+          title: form.value.title.trim(),
+          reward: form.value.reward.trim(),
+          location: form.value.location.trim(),
+          user: profile.name,
+          isTaken: false
+        };
+        await db.addMission(m);
+        form.value = { title: '', reward: '', location: '' };
+        isPosting.value = false;
+        toast.success("Mission publiée ! ⚡");
+      } catch (err: any) {
+        toast.error("Erreur lors de la publication.");
+      } finally {
+        isSubmitting.value = false;
+      }
     };
 
     return () => h('div', { class: "flex flex-col min-h-full bg-white dark:bg-background-dark" }, [
@@ -70,7 +80,7 @@ export default defineComponent({
             h('div', { class: "flex items-center gap-2 mb-1 flex-wrap" }, [
               h('span', { class: "text-[10px] font-black text-emerald-500 uppercase tracking-widest" }, m.reward),
               h('span', { class: "text-[10px] opacity-30" }, '•'),
-              h('span', { class: "text-[10px] opacity-40 font-bold" }, m.time),
+              h('span', { class: "text-[10px] opacity-40 font-bold" }, formatRelativeDate(m.createdAt || m.time)),
               m.isTaken ? h('span', { class: "text-[9px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 px-2 py-0.5 rounded-full uppercase" }, 'Pris') : null
             ]),
             h('h4', { class: "font-black text-base leading-tight mb-2" }, m.title),
@@ -108,9 +118,12 @@ export default defineComponent({
           ])),
           h('button', {
             onClick: submitMission,
-            disabled: !form.value.title.trim() || !form.value.reward.trim() || !form.value.location.trim(),
-            class: "w-full bg-emerald-500 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/20 disabled:opacity-20 active:scale-95 transition-all"
-          }, "Poster la mission")
+            disabled: !form.value.title.trim() || !form.value.reward.trim() || !form.value.location.trim() || isSubmitting.value,
+            class: "w-full bg-emerald-500 text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-500/20 disabled:opacity-20 active:scale-95 transition-all flex items-center justify-center gap-2"
+          }, isSubmitting.value ? [
+            h('div', { class: "w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" }),
+            "Publication..."
+          ] : "Poster la mission")
         ])
       ]) : null,
 

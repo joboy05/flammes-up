@@ -1,6 +1,8 @@
 
 import { defineComponent, ref, h, onMounted, onUnmounted, nextTick, watch, Transition } from 'vue';
 import { db } from '../services/db';
+import { api } from '../services/api';
+import { ws } from '../services/socket';
 import AudioRecorder from '../components/AudioRecorder';
 
 import { ChatMessage } from '../types';
@@ -18,20 +20,65 @@ export default defineComponent({
     const isMenuOpen = ref(false);
     const isRecording = ref(false);
     const myPhone = ref('');
+    const otherUserName = ref('Interlocuteur UP');
+    const otherUserAvatar = ref('');
 
-    onMounted(() => {
+    onMounted(async () => {
       const currentUser = db.getProfile();
       myPhone.value = currentUser.phone || '0197000000';
 
-      unsubscribe = db.subscribeMessages(props.convId || 'default', (newMsgs: ChatMessage[]) => {
+      const activeId = props.convId || (window as any)._activeConvId || 'default';
+      const participants = activeId.split('-');
+      const otherPhone = participants.find((p: string) => p !== myPhone.value);
+
+      if (otherPhone) {
+        // Try to find in global user list or fetch (simplified: fetch all and find)
+        try {
+          const usersRes = await api.getUsers();
+          const otherUser = usersRes.users?.find((u: any) => u.phone === otherPhone);
+          if (otherUser) {
+            otherUserName.value = otherUser.name || 'Utilisateur UP';
+            otherUserAvatar.value = otherUser.avatar || '';
+          }
+        } catch (e) { console.error(e); }
+      }
+
+      // Sync initial messages from API
+      try {
+        const data = await api.getMessages(activeId);
+        if (data.messages) {
+          messages.value = data.messages;
+          scrollToBottom();
+        }
+      } catch (err) {
+        console.warn("Failed to fetch initial messages from API:", err);
+      }
+
+      // Keep Firestore subscription as secondary/real-time source
+      unsubscribe = db.subscribeMessages(activeId, (newMsgs: ChatMessage[]) => {
         messages.value = newMsgs;
         scrollToBottom();
       });
+
+      // WebSocket support
+      ws.joinConversation(activeId);
+      ws.on('new-message', ({ convId, message }: any) => {
+        if (convId === activeId) {
+          // Add message if not already present (optimization to avoid double display with Firestore)
+          if (!messages.value.find(m => m.id === message.id)) {
+            messages.value.push(message);
+            scrollToBottom();
+          }
+        }
+      });
+
       scrollToBottom();
     });
 
     onUnmounted(() => {
       if (unsubscribe) unsubscribe();
+      const activeId = props.convId || (window as any)._activeConvId || 'default';
+      ws.leaveConversation(activeId);
     });
 
     const scrollToBottom = async () => {
@@ -45,11 +92,20 @@ export default defineComponent({
       if (!newMessage.value.trim()) return;
       const text = newMessage.value;
       newMessage.value = '';
-      await db.sendMessage(props.convId || 'default', { text, from: myPhone.value, type: 'text' });
+
+      const activeId = props.convId || (window as any)._activeConvId || 'default';
+
+      // Use API instead of direct Firestore
+      await api.sendMessage(activeId, {
+        text,
+        from: myPhone.value,
+        type: 'text'
+      });
     };
 
     const handleVoiceRecorded = async (audio: any) => {
-      await db.sendMessage(props.convId || 'default', {
+      const activeId = props.convId || (window as any)._activeConvId || 'default';
+      await api.sendMessage(activeId, {
         from: myPhone.value,
         type: 'audio',
         mediaUrl: audio.data,
@@ -62,8 +118,9 @@ export default defineComponent({
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
+      const activeId = props.convId || (window as any)._activeConvId || 'default';
       reader.onloadend = async () => {
-        await db.sendMessage(props.convId || 'default', {
+        await api.sendMessage(activeId, {
           from: myPhone.value,
           type: type,
           mediaUrl: reader.result as string
@@ -75,8 +132,9 @@ export default defineComponent({
 
     const handleShareLocation = () => {
       if (!navigator.geolocation) return alert("Géolocalisation non supportée.");
+      const activeId = props.convId || (window as any)._activeConvId || 'default';
       navigator.geolocation.getCurrentPosition(async (pos) => {
-        await db.sendMessage(props.convId || 'default', {
+        await api.sendMessage(activeId, {
           from: myPhone.value,
           type: 'location',
           location: { lat: pos.coords.latitude, lng: pos.coords.longitude }
@@ -93,9 +151,12 @@ export default defineComponent({
             h('span', { class: "material-icons-round text-3xl" }, 'chevron_left')
           ]),
           h('div', { class: "flex items-center gap-3" }, [
-            h('img', { src: `assets/avatar-${(parseInt(props.convId || '1') % 2) + 1}.svg`, class: "w-10 h-10 rounded-full object-cover border-2 border-primary/20" }),
+            h('img', {
+              src: otherUserAvatar.value || `assets/avatar-${(parseInt(props.convId || '1') % 2) + 1}.svg`,
+              class: "w-10 h-10 rounded-full object-cover border-2 border-primary/20 bg-slate-100"
+            }),
             h('div', [
-              h('p', { class: "text-sm font-black" }, 'Interlocuteur UP'),
+              h('p', { class: "text-sm font-black" }, otherUserName.value),
               h('p', { class: "text-[10px] text-emerald-500 font-black uppercase tracking-widest" }, 'En ligne')
             ])
           ])

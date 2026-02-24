@@ -13,9 +13,54 @@ export default defineComponent({
 
     onMounted(() => {
       unsubscribe = db.subscribeUsers((users) => {
-        // Shuffle users and filter out those without avatar if wanted, 
-        // or just take everyone but the current user
-        items.value = users.sort(() => 0.5 - Math.random());
+        const studentExamples: UserProfile[] = [
+          {
+            name: 'Bhial',
+            phone: 'example-bhial',
+            faculty: 'Droit',
+            level: 'Licence 3',
+            residence: 'BADEA-A',
+            maritalStatus: 'celibataire',
+            avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop',
+            bio: 'Fan de sport et de bonne humeur !',
+            vibesReceived: 12,
+            upPoints: 450,
+            hasStory: true,
+            role: 'user'
+          },
+          {
+            name: 'Emmanuel',
+            phone: 'example-emmanuel',
+            faculty: 'FLASH',
+            level: 'Master 1',
+            residence: 'externe',
+            maritalStatus: 'en_couple',
+            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop',
+            bio: 'Étudiant passionné par la tech.',
+            vibesReceived: 8,
+            upPoints: 320,
+            hasStory: false,
+            role: 'user'
+          },
+          {
+            name: 'Hardy Junior',
+            phone: 'example-hardy',
+            faculty: 'FSA',
+            level: 'Licence 2',
+            residence: 'Mohamed-VI',
+            maritalStatus: 'non_defini',
+            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop',
+            bio: 'Toujours prêt pour une nouvelle aventure.',
+            vibesReceived: 15,
+            upPoints: 500,
+            hasStory: true,
+            role: 'user'
+          }
+        ];
+
+        // Merge Firestore users with examples
+        items.value = [...studentExamples, ...users.filter(u => !studentExamples.some(e => e.phone === u.phone))];
+        items.value = items.value.sort(() => 0.5 - Math.random());
       });
     });
 
@@ -30,10 +75,30 @@ export default defineComponent({
 
     const handleVote = async (userId: string) => {
       const student = items.value.find(i => i.phone === userId);
-      if (student) {
-        await db.updateProfile(userId, { vibesReceived: (student.vibesReceived || 0) + 1 });
+
+      // Animation "pop" sur le vote
+      const el = document.querySelector('.active-card');
+      if (el) {
+        anime({
+          targets: el,
+          scale: [1, 1.1, 0],
+          rotate: [0, 5, -10],
+          opacity: [1, 1, 0],
+          duration: 800,
+          easing: 'easeInBack',
+          complete: async () => {
+            if (student) {
+              await db.updateProfile(userId, { vibesReceived: (student.vibesReceived || 0) + 1 });
+            }
+            next();
+          }
+        });
+      } else {
+        if (student) {
+          await db.updateProfile(userId, { vibesReceived: (student.vibesReceived || 0) + 1 });
+        }
+        next();
       }
-      next();
     };
 
     return () => h('div', { class: "min-h-screen bg-[#0f1115] text-white flex flex-col overflow-hidden" }, [
@@ -57,7 +122,7 @@ export default defineComponent({
         items.value.map((item, idx) => h('div', {
           class: [
             "absolute inset-x-6 aspect-[3/4.5] rounded-[50px] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] transition-all duration-700 ease-out border border-white/5",
-            idx === activeIndex.value ? "opacity-100 scale-100 rotate-0 z-20" :
+            idx === activeIndex.value ? "opacity-100 scale-100 rotate-0 z-20 active-card" :
               idx < activeIndex.value ? "opacity-0 -translate-y-20 scale-110 -rotate-12 z-10" : "opacity-0 translate-y-20 scale-90 rotate-12 z-10"
           ]
         }, [

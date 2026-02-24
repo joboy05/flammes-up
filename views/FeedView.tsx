@@ -1,8 +1,11 @@
 
-import { defineComponent, ref, h, watch, onMounted, onUnmounted } from 'vue';
+import { defineComponent, ref, h, onMounted, onUnmounted } from 'vue';
 import PostCard from '../components/PostCard';
 import AudioRecorder from '../components/AudioRecorder';
-import { db } from '../services/db';
+import { api } from '../services/api';
+import { ws } from '../services/socket';
+import { toast } from '../services/toast';
+import { formatRelativeDate } from '../services/dates';
 import { Post, Story } from '../types';
 
 export default defineComponent({
@@ -18,24 +21,71 @@ export default defineComponent({
     const postingTab = ref<'text' | 'audio' | 'image'>('text');
     const newPostContent = ref('');
     const recordedAudio = ref<any>(null);
-    const newStoryContent = ref(''); // Base64 data
+    const newStoryContent = ref('');
     const newStoryType = ref<'image' | 'video'>('image');
     const selectedStory = ref<Story | null>(null);
-    let unsubscribe: any = null;
-    let unsubscribeStories: any = null;
+    const isLoadingPosts = ref(true);
+    const isSubmittingPost = ref(false);
+    const isSubmittingStory = ref(false);
 
-    onMounted(() => {
-      unsubscribe = db.subscribePosts((newPosts) => {
-        posts.value = newPosts;
-      });
-      unsubscribeStories = db.subscribeStories((newStories) => {
-        stories.value = newStories;
-      });
+    const loadPosts = async () => {
+      try {
+        const data = await api.getPosts();
+        posts.value = (data.posts || []).map((p: any) => ({
+          ...p,
+          time: formatRelativeDate(p.createdAt)
+        }));
+      } catch (err) {
+        console.error('Error loading posts:', err);
+      } finally {
+        isLoadingPosts.value = false;
+      }
+    };
+
+    const loadStories = async () => {
+      try {
+        const data = await api.getStories();
+        stories.value = data.stories || [];
+      } catch (err) {
+        console.error('Error loading stories:', err);
+      }
+    };
+
+    // WebSocket handlers
+    const handleNewPost = (post: any) => {
+      post.time = formatRelativeDate(post.createdAt);
+      // Éviter les doublons
+      if (!posts.value.find(p => p.id === post.id)) {
+        posts.value.unshift(post);
+      }
+    };
+
+    const handleUpdatePost = (data: any) => {
+      const idx = posts.value.findIndex(p => p.id === data.id);
+      if (idx !== -1) {
+        posts.value[idx] = { ...posts.value[idx], ...data };
+      }
+    };
+
+    const handleNewStory = (story: any) => {
+      if (!stories.value.find(s => s.id === story.id)) {
+        stories.value.push(story);
+      }
+    };
+
+    onMounted(async () => {
+      await Promise.all([loadPosts(), loadStories()]);
+
+      // S'abonner aux events WebSocket
+      ws.on('new-post', handleNewPost);
+      ws.on('update-post', handleUpdatePost);
+      ws.on('new-story', handleNewStory);
     });
 
     onUnmounted(() => {
-      if (unsubscribe) unsubscribe();
-      if (unsubscribeStories) unsubscribeStories();
+      ws.off('new-post', handleNewPost);
+      ws.off('update-post', handleUpdatePost);
+      ws.off('new-story', handleNewStory);
     });
 
     const handleAudioRecorded = (data: any) => {
@@ -43,39 +93,38 @@ export default defineComponent({
     };
 
     const submitPost = async () => {
-      const user = db.getProfile();
-
-      const postData: Partial<Post> = {
-        author: user.name,
-        authorTag: user.faculty,
-        avatar: user.avatar || 'assets/default-avatar.svg',
-        time: "À l'instant",
-        content: newPostContent.value || (postingTab.value === 'audio' ? "Note vocale" : ""),
-        type: postingTab.value,
-        stats: { flames: 0, comments: 0 },
-        commentsList: [],
-        audioData: recordedAudio.value?.data,
-        audioDuration: recordedAudio.value?.duration
-      };
-
-      await db.addPost(postData);
-      resetPosting();
+      if (isSubmittingPost.value) return;
+      isSubmittingPost.value = true;
+      try {
+        await api.createPost({
+          content: newPostContent.value || (postingTab.value === 'audio' ? "Note vocale" : ""),
+          type: postingTab.value,
+          audioData: recordedAudio.value?.data,
+          audioDuration: recordedAudio.value?.duration
+        });
+        resetPosting();
+        // Recharger les posts pour avoir les données fraîches
+        await loadPosts();
+      } catch (err: any) {
+        toast.error(err.message || 'Erreur lors de la publication');
+      } finally {
+        isSubmittingPost.value = false;
+      }
     };
 
     const submitStory = async () => {
-      const user = db.getProfile();
-      if (!newStoryContent.value) return;
-
-      const storyData: Partial<Story> = {
-        userId: user.phone,
-        name: user.name,
-        avatar: user.avatar || 'assets/default-avatar.svg',
-        content: newStoryContent.value,
-        type: newStoryType.value,
-      };
-
-      await db.addStory(storyData);
-      resetStoryPosting();
+      if (!newStoryContent.value || isSubmittingStory.value) return;
+      isSubmittingStory.value = true;
+      try {
+        await api.createStory(newStoryContent.value, newStoryType.value);
+        resetStoryPosting();
+        await loadStories();
+        toast.success("Ta flamme se propage ! 🔥");
+      } catch (err: any) {
+        toast.error(err.message || 'Erreur lors de la publication de la story');
+      } finally {
+        isSubmittingStory.value = false;
+      }
     };
 
     const resetStoryPosting = () => {
@@ -93,7 +142,6 @@ export default defineComponent({
     return () => h('div', { class: "flex flex-col min-h-full pb-20" }, [
       // Horizontal Stories Bar
       h('div', { class: "px-5 py-6 flex gap-4 overflow-x-auto no-scrollbar bg-white dark:bg-transparent" }, [
-        // Add Story Button
         h('button', {
           onClick: () => isPostingStory.value = true,
           class: "flex flex-col items-center gap-2 shrink-0 group"
@@ -104,7 +152,6 @@ export default defineComponent({
           h('span', { class: "text-[10px] font-black uppercase tracking-widest text-primary" }, 'Ma Story')
         ]),
 
-        // Real Stories
         stories.value.map(s => h('button', {
           key: s.id,
           onClick: () => selectedStory.value = s,
@@ -121,7 +168,6 @@ export default defineComponent({
           h('span', { class: "text-[10px] font-bold opacity-60 uppercase tracking-widest truncate w-16" }, s.name.split(' ')[0])
         ])),
 
-        // FaceMatch shortcut
         h('button', {
           onClick: () => (window as any).dispatchEvent(new CustomEvent('nav', { detail: 'facematch' })),
           class: "flex flex-col items-center gap-2 shrink-0 group"
@@ -135,27 +181,45 @@ export default defineComponent({
         ])
       ]),
 
+      // Loading state
+      isLoadingPosts.value ? h('div', { class: "flex items-center justify-center py-20" }, [
+        h('div', { class: "w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" })
+      ]) : null,
+
       // Posts
-      h('div', { class: "p-4 space-y-4" },
-        posts.value.map(post => h(PostCard, {
-          key: post.id,
-          post,
-          isEcoMode: props.isEcoMode,
-          onFlame: () => {
-            const isFlambant = !post.stats.isFlambant;
-            db.updatePost(post.id, {
-              stats: {
+      !isLoadingPosts.value ? h('div', { class: "p-4 space-y-4" },
+        posts.value.length === 0
+          ? [h('div', { class: "text-center py-20 opacity-40" }, [
+            h('span', { class: "material-icons-round text-5xl mb-4 block" }, 'local_fire_department'),
+            h('p', { class: "text-sm font-bold uppercase tracking-widest" }, 'Aucun post encore. Sois le premier ! 🔥')
+          ])]
+          : posts.value.map(post => h(PostCard, {
+            key: post.id,
+            post,
+            isEcoMode: props.isEcoMode,
+            onFlame: async () => {
+              const isFlambant = !post.stats.isFlambant;
+              const newStats = {
                 ...post.stats,
                 isFlambant,
                 flames: post.stats.flames + (isFlambant ? 1 : -1)
+              };
+              try {
+                await api.updatePost(post.id, { stats: newStats });
+                post.stats = newStats;
+              } catch (err) {
+                // Revert on error
               }
-            });
-          },
-          onUpdatePost: (updated) => {
-            db.updatePost(post.id, updated);
-          }
-        }))
-      ),
+            },
+            onUpdatePost: async (updated: any) => {
+              try {
+                await api.updatePost(post.id, updated);
+              } catch (err) {
+                console.error('Update post error:', err);
+              }
+            }
+          }))
+      ) : null,
 
       // Story Creator Modal
       isPostingStory.value ? h('div', { class: "fixed inset-0 z-[150] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 animate-in zoom-in duration-300" }, [
@@ -173,6 +237,9 @@ export default defineComponent({
               h('span', { class: "material-icons-round text-5xl text-primary mb-4" }, 'add_a_photo'),
               h('p', { class: "text-xs font-bold opacity-40 uppercase tracking-widest" }, "Photos ou Vidéos")
             ],
+            isSubmittingStory.value ? h('div', { class: "absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center z-10" }, [
+              h('div', { class: "w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" })
+            ]) : null,
             h('input', {
               id: 'story-file-input',
               type: 'file',
@@ -194,9 +261,12 @@ export default defineComponent({
             h('button', { onClick: resetStoryPosting, class: "flex-1 py-4 font-black uppercase text-[10px] tracking-widest opacity-40" }, "Annuler"),
             h('button', {
               onClick: submitStory,
-              disabled: !newStoryContent.value,
-              class: "flex-[2] py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 disabled:opacity-20"
-            }, "Propager")
+              disabled: !newStoryContent.value || isSubmittingStory.value,
+              class: "flex-[2] py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 disabled:opacity-20 flex items-center justify-center gap-2"
+            }, isSubmittingStory.value ? [
+              h('div', { class: "w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" }),
+              "Propagation..."
+            ] : "Propager")
           ])
         ])
       ]) : null,
@@ -212,22 +282,13 @@ export default defineComponent({
           ]),
           h('div', [
             h('p', { class: "text-white font-black text-sm" }, selectedStory.value.name),
-            h('p', { class: "text-white/60 text-[8px] font-bold uppercase tracking-widest" }, "24h Story")
+            h('p', { class: "text-white/60 text-[8px] font-bold uppercase tracking-widest" }, formatRelativeDate(selectedStory.value.createdAt))
           ]),
           h('button', { class: "ml-auto text-white" }, [h('span', { class: "material-icons-round font-black" }, 'close')])
         ]),
         selectedStory.value.type === 'image'
-          ? h('img', {
-            src: selectedStory.value.content,
-            class: "w-full h-full object-contain"
-          })
-          : h('video', {
-            src: selectedStory.value.content,
-            class: "w-full h-full object-contain",
-            autoplay: true,
-            playsinline: true,
-            loop: true
-          }),
+          ? h('img', { src: selectedStory.value.content, class: "w-full h-full object-contain" })
+          : h('video', { src: selectedStory.value.content, class: "w-full h-full object-contain", autoplay: true, playsinline: true, loop: true }),
         h('div', { class: "absolute bottom-0 left-0 right-0 h-1 bg-white/20" }, [
           h('div', { class: "h-full bg-primary animate-story-progress" })
         ])
@@ -264,9 +325,12 @@ export default defineComponent({
 
           h('button', {
             onClick: submitPost,
-            disabled: (postingTab.value === 'text' && !newPostContent.value.trim()) || (postingTab.value === 'audio' && !recordedAudio.value),
-            class: "w-full bg-primary text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 disabled:opacity-20 active:scale-95 transition-all"
-          }, "Publier l'étincelle")
+            disabled: isSubmittingPost.value || (postingTab.value === 'text' && !newPostContent.value.trim()) || (postingTab.value === 'audio' && !recordedAudio.value),
+            class: "w-full bg-primary text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 disabled:opacity-20 active:scale-95 transition-all flex items-center justify-center gap-2"
+          }, isSubmittingPost.value ? [
+            h('div', { class: "w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" }),
+            "Publication..."
+          ] : "Publier l'étincelle")
         ])
       ]) : null,
 

@@ -29,6 +29,12 @@
       position: fixed;
       inset: 0;
       z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+
+    #preloader.hidden {
+      opacity: 0;
+      pointer-events: none;
     }
 
     .logo-container {
@@ -37,7 +43,6 @@
       height: 120px;
     }
 
-    /* Squircle shape approximation */
     .squircle {
       position: absolute;
       inset: 0;
@@ -62,10 +67,27 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+
+    /* Preloader pulse animation */
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.05);
+      }
+    }
+
+    .logo-container {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
   </style>
 </head>
 
-<body class="antialiased bg-[#FFFDE7] dark:bg-[#0f1115] text-slate-900 dark:text-white transition-colors duration-500">
+<body class="antialiased bg-white dark:bg-[#0f1115] text-slate-900 dark:text-white transition-colors duration-500">
   <div id="preloader">
     <div class="logo-container" id="logo-wrap">
       <div class="squircle" id="logo-squircle"></div>
@@ -76,7 +98,7 @@
           style="color: #991b1b">FLAMMES</span> <span class="text-white italic">UP</span></h2>
       <p id="loader-status"
         class="text-[9px] font-bold text-primary uppercase tracking-[0.5em] transition-opacity duration-300">
-        Initialisation du réseau...</p>
+        Chargement...</p>
     </div>
   </div>
 
