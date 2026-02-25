@@ -282,19 +282,12 @@ export default defineComponent({
               }
             },
             onDelete: async () => {
-              if (confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) {
-                try {
-                  await api.deletePost(post.id);
-                  // Retirer le post de la liste locale
-                  const index = posts.value.findIndex(p => p.id === post.id);
-                  if (index !== -1) {
-                    posts.value.splice(index, 1);
-                  }
-                } catch (err: any) {
-                  console.error('Delete post error:', err);
-                  toast.error(err.message || "Erreur lors de la suppression");
-                }
-              }
+              import('../services/toast').then(m => {
+                m.toast.info('🔧 Système de suppression en cours de développement', {
+                  duration: 4000,
+                  position: 'top-center'
+                });
+              });
             }
           }))
       ) : null,

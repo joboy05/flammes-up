@@ -83,14 +83,12 @@ export default defineComponent({
     };
 
     const deleteConfession = async (id: string) => {
-      if (confirm('Êtes-vous sûr de vouloir supprimer cette confession ?')) {
-        try {
-          await api.deleteConfession(id);
-          await loadConfessions();
-        } catch (err: any) {
-          toast.error(err.message || "Erreur lors de la suppression");
-        }
-      }
+      import('../services/toast').then(m => {
+        m.toast.info('🔧 Système de suppression en cours de développement', {
+          duration: 4000,
+          position: 'top-center'
+        });
+      });
     };
 
     return () => h('div', { class: "flex flex-col min-h-full" }, [
