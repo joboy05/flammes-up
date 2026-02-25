@@ -17,14 +17,14 @@ const httpServer = createServer(app);
 // Socket.IO
 const io = new Server(httpServer, {
     cors: {
-        origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000'],
+        origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://flammesup.netlify.app', 'https://flammesup.netlify.app'],
         methods: ['GET', 'POST', 'PATCH', 'DELETE']
     }
 });
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000'],
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://flammesup.netlify.app', 'https://flammesup.netlify.app'],
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' })); // Pour les images base64

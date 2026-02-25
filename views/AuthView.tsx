@@ -57,15 +57,22 @@ export default defineComponent({
     };
 
     const handleGoogleSignIn = async () => {
-      isLoading.value = true;
       try {
+        // Appelez signInWithPopup DIRECTEMENT sans `isLoading.value = true;` préalable
+        // pour ne pas perdre le contexte "user gesture" requis par les navigateurs stricts
         const result = await signInWithPopup(auth, googleProvider);
+
+        // Mettez à jour l'état de chargement APRES l'ouverture du popup
+        isLoading.value = true;
+
         const idToken = await result.user.getIdToken();
         emit('google-login', idToken);
       } catch (err: any) {
         console.error("Google Auth Error:", err);
-        if (err.code !== 'auth/popup-closed-by-user') {
-          toast.error("Erreur d'authentification Google");
+        if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+          toast.error("Erreur d'authentification Google: " + (err.message || err.code));
+        } else if (err.code === 'auth/popup-blocked') {
+          toast.error("Le popup d'authentification a été bloqué par votre navigateur. Veuillez autoriser les popups pour ce site.");
         }
         isLoading.value = false;
       }

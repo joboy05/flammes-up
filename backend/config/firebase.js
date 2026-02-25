@@ -3,12 +3,12 @@ import { getFirestore } from 'firebase/firestore';
 import admin from 'firebase-admin';
 
 const firebaseConfig = {
-    apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyCGgkiXSw5MifsprESwd6PNl0h_-PPz664',
-    authDomain: 'flammeup-5327c.firebaseapp.com',
+    apiKey: process.env.FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'flammeup-5327c.firebaseapp.com',
     projectId: process.env.FIREBASE_PROJECT_ID || 'flammeup-5327c',
-    storageBucket: 'flammeup-5327c.firebasestorage.app',
-    messagingSenderId: '541144218482',
-    appId: '1:541144218482:web:8c387a86c14e31a0c6bbeb'
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'flammeup-5327c.firebasestorage.app',
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '541144218482',
+    appId: process.env.FIREBASE_APP_ID || '1:541144218482:web:8c387a86c14e31a0c6bbeb'
 };
 
 const app = initializeApp(firebaseConfig);

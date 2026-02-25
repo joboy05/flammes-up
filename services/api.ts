@@ -1,7 +1,9 @@
 
 import { toast } from './toast';
 
-const API_BASE = '/api';
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000/api'
+    : 'https://flammes-up-back.onrender.com/api';
 
 function getToken(): string | null {
     return localStorage.getItem('up_token');

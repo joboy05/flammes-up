@@ -15,9 +15,9 @@ async function connect() {
         // Dynamic import pour ne pas charger socket.io-client si pas besoin
         const { io } = await import('socket.io-client');
 
-        const wsUrl = window.location.hostname === 'localhost'
+        const wsUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:5000'
-            : window.location.origin;
+            : 'https://flammes-up-back.onrender.com';
 
         socket = io(wsUrl, {
             transports: ['websocket', 'polling'],
