@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../config/firebase.js';
-import { collection, addDoc, getDocs, doc, getDoc, query, orderBy, where, limit, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, setDoc, query, orderBy, where, limit, Timestamp } from 'firebase/firestore';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
@@ -42,10 +42,18 @@ router.post('/:convId', authMiddleware, async (req, res) => {
             createdAt: Timestamp.now()
         };
 
+        // Create the message document
         const docRef = await addDoc(
             collection(db, 'conversations', req.params.convId, 'messages'),
             messageData
         );
+
+        // Ensure the conversation document exists and is updated
+        const convRef = doc(db, 'conversations', req.params.convId);
+        await setDoc(convRef, {
+            updatedAt: Timestamp.now(),
+            participants: req.params.convId.split('-')
+        }, { merge: true });
 
         const newMessage = { id: docRef.id, ...messageData, createdAt: new Date().toISOString() };
 
@@ -54,10 +62,16 @@ router.post('/:convId', authMiddleware, async (req, res) => {
                 convId: req.params.convId,
                 message: newMessage
             });
+            // Broadcast to specific users for universal conversation update
+            const participants = req.params.convId.split('-');
+            participants.forEach(p => {
+                req.io.to(`user-${p}`).emit('conversations-updated');
+            });
         }
 
         res.status(201).json({ message: 'Message envoyé', data: newMessage });
     } catch (err) {
+        console.error("Erreur send message:", err);
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });

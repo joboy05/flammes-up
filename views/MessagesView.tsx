@@ -1,5 +1,6 @@
-import { defineComponent, h, ref, onMounted } from 'vue';
+import { defineComponent, h, ref, onMounted, onUnmounted } from 'vue';
 import { api } from '../services/api';
+import { ws } from '../services/socket';
 
 export default defineComponent({
   name: 'MessagesView',
@@ -8,7 +9,7 @@ export default defineComponent({
     const conversations = ref<any[]>([]);
     const isLoading = ref(true);
 
-    onMounted(async () => {
+    const loadConversations = async () => {
       try {
         const data = await api.getConversationsAll();
         conversations.value = data.conversations || [];
@@ -17,6 +18,15 @@ export default defineComponent({
       } finally {
         isLoading.value = false;
       }
+    };
+
+    onMounted(() => {
+      loadConversations();
+      ws.on('conversations-updated', loadConversations);
+    });
+
+    onUnmounted(() => {
+      ws.off('conversations-updated', loadConversations);
     });
 
     return () => h('div', { class: "flex flex-col min-h-full bg-background-light dark:bg-background-dark" }, [

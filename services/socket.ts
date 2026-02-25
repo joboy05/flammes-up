@@ -90,6 +90,14 @@ function leaveConversation(convId: string) {
     emit('leave-conversation', convId);
 }
 
+function joinUser(userId: string) {
+    emit('join-user', userId);
+}
+
+function leaveUser(userId: string) {
+    emit('leave-user', userId);
+}
+
 export const ws = {
     connect,
     disconnect,
@@ -98,5 +106,7 @@ export const ws = {
     emit,
     joinConversation,
     leaveConversation,
+    joinUser,
+    leaveUser,
     isConnected
 };

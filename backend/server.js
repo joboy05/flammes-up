@@ -62,6 +62,16 @@ io.on('connection', (socket) => {
         socket.leave(`conv-${convId}`);
     });
 
+    // Rejoindre sa propre room (pour les notifications globales, maj de conversations)
+    socket.on('join-user', (userId) => {
+        socket.join(`user-${userId}`);
+        console.log(`👤 ${socket.id} a rejoint user-${userId}`);
+    });
+
+    socket.on('leave-user', (userId) => {
+        socket.leave(`user-${userId}`);
+    });
+
     // Typing indicator
     socket.on('typing', ({ convId, user }) => {
         socket.to(`conv-${convId}`).emit('user-typing', { convId, user });

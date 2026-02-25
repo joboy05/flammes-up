@@ -18,7 +18,7 @@ export default defineComponent({
       unsubscribe = db.subscribeUsers((users) => {
         const studentExamples: UserProfile[] = [
           {
-            name: 'Bhial',
+            name: 'Bhilal',
             phone: 'example-bhial',
             faculty: 'Droit',
             level: 'Licence 3',

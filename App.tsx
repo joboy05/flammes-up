@@ -109,8 +109,11 @@ export default defineComponent({
             currentUser.value = { ...currentUser.value, ...data.user };
             localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
           }
-          // Connecter WebSocket
-          ws.connect();
+          // Connecter WebSocket et sa room globale personnelle
+          await ws.connect();
+          if (currentUser.value.phone) {
+            ws.joinUser(currentUser.value.phone);
+          }
         } catch (err) {
           // Token invalide/expiré, déconnecter
           console.warn('Token expiré, reconnexion nécessaire');
@@ -131,7 +134,8 @@ export default defineComponent({
           isAuthenticated.value = true;
           localStorage.setItem('up_auth', 'true');
           localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
-          ws.connect();
+          await ws.connect();
+          if (currentUser.value.phone) ws.joinUser(currentUser.value.phone);
           activeTab.value = currentUser.value.isProfileComplete ? 'feed' : 'feed';
         }
       } catch (err: any) {
@@ -153,7 +157,8 @@ export default defineComponent({
           isAuthenticated.value = true;
           localStorage.setItem('up_auth', 'true');
           localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
-          ws.connect();
+          await ws.connect();
+          if (currentUser.value.phone) ws.joinUser(currentUser.value.phone);
           activeTab.value = 'feed';
         }
       } catch (err: any) {
@@ -169,7 +174,8 @@ export default defineComponent({
           isAuthenticated.value = true;
           localStorage.setItem('up_auth', 'true');
           localStorage.setItem('up_profile', JSON.stringify(currentUser.value));
-          ws.connect();
+          await ws.connect();
+          if (currentUser.value.phone) ws.joinUser(currentUser.value.phone);
           activeTab.value = currentUser.value.isProfileComplete ? 'feed' : 'feed';
         }
       } catch (err: any) {
@@ -234,7 +240,10 @@ export default defineComponent({
         case 'marketplace': return h(MarketplaceView, { isEcoMode: isEcoMode.value });
         case 'confessions': return h(ConfessionsView);
         case 'messages': return h(MessagesView, {
-          onOpenChat: (id: string) => activeTab.value = 'chat_detail',
+          onOpenChat: (id: string) => {
+            (window as any)._activeConvId = id;
+            activeTab.value = 'chat_detail';
+          },
           onOpenDiscovery: () => activeTab.value = 'discovery'
         });
         case 'facematch': return h(FaceMatchView, { onBack: () => activeTab.value = 'feed', userVibes: currentUser.value.vibesReceived });
