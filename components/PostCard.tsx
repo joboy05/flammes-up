@@ -61,26 +61,18 @@ export default defineComponent({
             h('p', { class: "text-[10px] opacity-40 font-bold uppercase tracking-widest" }, `${props.post.time} • ${props.post.authorTag || 'Campus'}`)
           ])
         ]),
-<<<<<<< HEAD
-        h('button', { 
-          class: "text-slate-300" 
-        }, [
-          h('span', { class: "material-icons-round" }, 'more_horiz')
-        ]),
+h('button', {
+          class: "text-slate-300 active:text-primary transition-colors",
+          onClick: () => {
+            import('../services/toast').then(m => m.toast.info('Options du post (Bientôt)'));
+          }
+        }, [h('span', { class: "material-icons-round" }, 'more_horiz')]),
         props.canDelete ? h('button', {
           onClick: () => emit('delete'),
           class: "text-red-500 ml-2"
         }, [
           h('span', { class: "material-icons-round" }, 'delete')
         ]) : null
-=======
-        h('button', {
-          class: "text-slate-300 active:text-primary transition-colors",
-          onClick: () => {
-            import('../services/toast').then(m => m.toast.info('Options du post (Bientôt)'));
-          }
-        }, [h('span', { class: "material-icons-round" }, 'more_horiz')])
->>>>>>> 66acd6f8aea0b67aa4b7a768fbc6485d6ec58c26
       ]),
 
       h('p', { class: "text-sm leading-relaxed mb-5 text-slate-800 dark:text-slate-200 font-medium whitespace-pre-wrap" }, props.post.content),
