@@ -39,6 +39,33 @@ export default defineComponent({
       }
     };
 
+    const showComments = ref<Record<string, boolean>>({});
+    const newComment = ref<Record<string, string>>({});
+
+    const addComment = async (c: Confession) => {
+      const text = newComment.value[c.id];
+      if (!text || !text.trim()) return;
+
+      const user = JSON.parse(localStorage.getItem('up_profile') || '{}');
+      const comment = {
+        id: Date.now().toString(),
+        author: user.name || 'Anonyme',
+        avatar: user.avatar || '/assets/default-avatar.svg',
+        text: text.trim(),
+        createdAt: new Date()
+      };
+
+      const updatedCommentsList = [comment, ...(c.commentsList || [])];
+
+      try {
+        await api.updateConfession(c.id, { commentsList: updatedCommentsList });
+        c.commentsList = updatedCommentsList;
+        newComment.value[c.id] = '';
+      } catch (err) {
+        toast.error("Erreur lors de l'ajout du commentaire");
+      }
+    };
+
     const submitConfession = async () => {
       if (!newConfession.value.trim() || isSubmitting.value) return;
       isSubmitting.value = true;
@@ -69,15 +96,51 @@ export default defineComponent({
           h('p', { class: "text-[10px] opacity-30 font-bold mb-3" }, formatRelativeDate(c.createdAt || c.time)),
           h('p', { class: "text-sm leading-relaxed mb-6 text-slate-800 dark:text-slate-200 font-medium" }, c.content),
           h('div', { class: "flex items-center justify-between border-t border-slate-50 dark:border-white/5 pt-4" }, [
-            h('div', { class: "flex items-center gap-2" }, [
-              h('span', { class: `material-icons-round text-lg ${c.isFlamedByMe ? 'text-primary' : 'opacity-30'}` }, 'local_fire_department'),
-              h('span', { class: "text-xs font-black opacity-50" }, `${c.flames} flammes`)
+            h('div', { class: "flex items-center gap-4" }, [
+              h('div', { class: "flex items-center gap-2" }, [
+                h('span', { class: `material-icons-round text-lg ${c.isFlamedByMe ? 'text-primary' : 'opacity-30'}` }, 'local_fire_department'),
+                h('span', { class: "text-xs font-black opacity-50" }, `${c.flames || 0} flammes`)
+              ]),
+              h('button', {
+                onClick: () => {
+                  if (!showComments.value[c.id]) showComments.value[c.id] = true;
+                  else showComments.value[c.id] = false;
+                },
+                class: "flex items-center gap-2 text-slate-400 active:scale-110 transition-all focus:outline-none"
+              }, [
+                h('span', { class: "material-icons-round text-lg" }, 'chat_bubble_outline'),
+                h('span', { class: "text-xs font-black" }, (c.commentsList || []).length)
+              ])
             ]),
             h('button', {
               onClick: () => toggleFlame(c),
               class: `text-[10px] font-black uppercase px-4 py-2 rounded-full transition-all active:scale-95 ${c.isFlamedByMe ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-primary/10 text-primary'}`
             }, c.isFlamedByMe ? '🔥 Flambant' : 'Enflammer')
-          ])
+          ]),
+
+          showComments.value[c.id] ? h('div', { class: "mt-6 pt-4 border-t border-slate-50 dark:border-white/5 space-y-4" }, [
+            h('div', { class: "flex gap-3 bg-slate-50 dark:bg-white/5 rounded-2xl p-2 px-4" }, [
+              h('input', {
+                value: newComment.value[c.id] || '',
+                onInput: (e: any) => newComment.value[c.id] = e.target.value,
+                onKeyup: (e: any) => e.key === 'Enter' && addComment(c),
+                placeholder: "Ton commentaire...",
+                class: "flex-1 bg-transparent border-none text-xs focus:ring-0 py-2 dark:text-white"
+              }),
+              h('button', { onClick: () => addComment(c), class: "text-primary font-black text-[10px] uppercase tracking-widest px-2" }, "OK")
+            ]),
+            h('div', { class: "space-y-4 max-h-60 overflow-y-auto no-scrollbar" },
+              (c.commentsList || []).map((comment: any) => h('div', { class: "flex gap-3", key: comment.id }, [
+                h('img', { src: comment.avatar || '/assets/default-avatar.svg', class: "w-8 h-8 rounded-full object-cover bg-slate-100" }),
+                h('div', { class: "flex-1 bg-slate-50 dark:bg-white/5 rounded-2xl p-3" }, [
+                  h('p', { class: "text-[10px] font-black uppercase tracking-widest text-primary mb-1" }, comment.author),
+                  h('p', { class: "text-xs font-medium opacity-80" }, comment.text),
+                  h('p', { class: "text-[8px] opacity-30 font-bold mt-2" }, formatRelativeDate(comment.createdAt || comment.time))
+                ])
+              ]))
+            )
+          ]) : null
+
         ]))
       ),
 

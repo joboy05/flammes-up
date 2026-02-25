@@ -23,6 +23,7 @@ export interface Confession {
   content: string;
   flames: number;
   isFlamedByMe?: boolean;
+  commentsList?: any[];
   time: string;
   createdAt: any;
 }

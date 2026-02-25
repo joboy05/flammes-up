@@ -151,6 +151,13 @@ export const api = {
         });
     },
 
+    async updateConfession(id: string, data: any) {
+        return request(`/confessions/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    },
+
     // === STORIES ===
     async getStories() {
         return request('/stories');

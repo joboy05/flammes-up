@@ -16,22 +16,36 @@ export default defineComponent({
     const isLoading = ref(false);
     const scrollRef = ref(null);
     const selectedModel = ref<'gemini' | 'groq'>('groq');
+    const selectedImage = ref<string | null>(null);
 
     const scrollToBottom = async () => {
       await nextTick();
       if (scrollRef.value) {
-        scrollRef.value.scrollTop = scrollRef.value.scrollHeight;
+        (scrollRef.value as HTMLElement).scrollTop = (scrollRef.value as HTMLElement).scrollHeight;
       }
     };
 
     onMounted(scrollToBottom);
 
+    const handleImageUpload = (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (re) => {
+          selectedImage.value = re.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
     const sendMessage = async () => {
       const text = userInput.value;
-      if (!text.trim() || isLoading.value) return;
+      const img = selectedImage.value;
+      if ((!text.trim() && !img) || isLoading.value) return;
 
-      messages.value.push({ role: 'user', text });
+      messages.value.push({ role: 'user', text, image: img });
       userInput.value = '';
+      selectedImage.value = null;
       isLoading.value = true;
       await scrollToBottom();
 
@@ -178,13 +192,14 @@ CONTEXTE ET RÔLE :
         ref: scrollRef,
         class: "flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar pb-10"
       }, [
-        messages.value.map(m => h('div', { class: `flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}` }, [
-          h('div', {
+        messages.value.map(m => h('div', { class: `flex flex-col gap-2 ${m.role === 'user' ? 'items-end' : 'items-start'}` }, [
+          m.image ? h('img', { src: m.image, class: "max-w-[70%] rounded-2xl object-cover shadow-sm mb-1" }) : null,
+          m.text ? h('div', {
             class: `max-w-[85%] px-5 py-4 rounded-[26px] text-sm shadow-sm ${m.role === 'user'
               ? 'bg-primary text-white rounded-tr-none'
               : 'bg-slate-100 dark:bg-white/5 rounded-tl-none text-slate-800 dark:text-slate-200'
               }`
-          }, m.text)
+          }, m.text) : null
         ])),
         isLoading.value ? h('div', { class: "flex justify-start" }, [
           h('div', { class: "bg-slate-100 dark:bg-white/5 px-5 py-2.5 rounded-full text-[10px] font-black uppercase opacity-40 animate-pulse" }, "Réflexion en cours...")
@@ -193,18 +208,38 @@ CONTEXTE ET RÔLE :
 
       // Input Area
       h('footer', { class: "p-4 bg-white dark:bg-[#0f1115] border-t border-primary/5 pb-10 sm:pb-6" }, [
+        selectedImage.value ? h('div', { class: "mb-3 relative inline-block" }, [
+          h('img', { src: selectedImage.value, class: "h-20 w-20 object-cover rounded-xl border-2 border-primary/20" }),
+          h('button', {
+            onClick: () => selectedImage.value = null,
+            class: "absolute -top-2 -right-2 w-6 h-6 bg-slate-800 text-white rounded-full flex items-center justify-center shadow-lg"
+          }, [h('span', { class: "material-icons-round text-xs" }, "close")])
+        ]) : null,
         h('div', { class: "flex items-center gap-2 bg-slate-100 dark:bg-white/5 rounded-full px-4 py-1.5 border border-slate-200 dark:border-white/10" }, [
+          h('button', {
+            onClick: () => (document.getElementById('chatup-image-upload') as HTMLInputElement)?.click(),
+            class: "w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-primary transition-colors focus:outline-none"
+          }, [
+            h('span', { class: "material-icons-round" }, 'image')
+          ]),
+          h('input', {
+            id: 'chatup-image-upload',
+            type: 'file',
+            accept: "image/*",
+            class: "hidden",
+            onChange: handleImageUpload
+          }),
           h('input', {
             value: userInput.value,
             onInput: (e: any) => userInput.value = e.target.value,
             onKeyup: (e: any) => e.key === 'Enter' && sendMessage(),
-            placeholder: "Demande-moi n'importe quoi...",
-            class: "flex-1 bg-transparent border-none text-sm focus:ring-0 py-4 dark:text-white"
+            placeholder: "Message ou lien...",
+            class: "flex-1 bg-transparent border-none text-sm focus:ring-0 py-4 dark:text-white outline-none"
           }),
           h('button', {
             onClick: sendMessage,
-            disabled: !userInput.value.trim() || isLoading.value,
-            class: "w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-xl active:scale-95 disabled:opacity-20 transition-all"
+            disabled: (!userInput.value.trim() && !selectedImage.value) || isLoading.value,
+            class: "w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-xl active:scale-95 disabled:opacity-20 transition-all focus:outline-none"
           }, [
             h('span', { class: "material-icons-round text-2xl" }, 'send')
           ])

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db } from '../config/firebase.js';
-import { collection, addDoc, doc, getDocs, updateDoc, query, orderBy, limit, Timestamp, increment } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, getDocs, updateDoc, query, orderBy, limit, Timestamp, increment } from 'firebase/firestore';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
@@ -24,11 +24,13 @@ router.get('/', async (req, res) => {
 // POST /api/confessions
 router.post('/', authMiddleware, async (req, res) => {
     try {
+        const { content, user } = req.body;
         const confessionData = {
-            user: req.user.phone,
+            user: user || 'Anonyme',
             content,
             flames: 0,
             flamedBy: [],
+            commentsList: [],
             createdAt: Timestamp.now()
         };
 
@@ -39,6 +41,26 @@ router.post('/', authMiddleware, async (req, res) => {
 
         res.status(201).json({ message: 'Confession publiée !', confession: newConfession });
     } catch (err) {
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+});
+
+// PATCH /api/confessions/:id
+router.patch('/:id', authMiddleware, async (req, res) => {
+    try {
+        const { commentsList } = req.body;
+        const updates = {};
+        if (commentsList) {
+            updates.commentsList = commentsList;
+        }
+
+        await updateDoc(doc(db, 'confessions', req.params.id), updates);
+
+        if (req.io) req.io.emit('update-confession', { id: req.params.id, ...updates });
+
+        res.json({ message: 'Confession mise à jour' });
+    } catch (err) {
+        console.error('Update confession error:', err);
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });
