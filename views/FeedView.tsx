@@ -32,16 +32,24 @@ export default defineComponent({
       try {
         const data = await api.getPosts();
         const user = JSON.parse(localStorage.getItem('up_profile') || '{}');
+        console.log('Current user phone:', user.phone);
+        
         posts.value = (data.posts || []).map((p: any) => {
           // Vérifier si l'utilisateur actuel a flambé ce post
           const isFlambant = p.flamedBy?.includes(user.phone) || false;
+          // Vérifier si l'utilisateur est l'auteur du post
+          const canDelete = p.userId === user.phone || p.user === user.phone;
+          
+          console.log('Post:', p.id, 'userId:', p.userId, 'user:', p.user, 'canDelete:', canDelete);
+          
           return {
             ...p,
             time: formatRelativeDate(p.createdAt),
             stats: {
               ...p.stats,
               isFlambant
-            }
+            },
+            canDelete
           };
         });
       } catch (err) {
@@ -92,6 +100,13 @@ export default defineComponent({
       }
     };
 
+    const handlePostDeleted = (data: any) => {
+      const idx = posts.value.findIndex(p => p.id === data.id);
+      if (idx !== -1) {
+        posts.value.splice(idx, 1);
+      }
+    };
+
     const handleNewStory = (story: any) => {
       if (!stories.value.find(s => s.id === story.id)) {
         stories.value.push(story);
@@ -105,6 +120,7 @@ export default defineComponent({
       ws.on('new-post', handleNewPost);
       ws.on('update-post', handleUpdatePost);
       ws.on('post-flamed', handlePostFlamed);
+      ws.on('delete-post', handlePostDeleted);
       ws.on('new-story', handleNewStory);
     });
 
@@ -112,6 +128,7 @@ export default defineComponent({
       ws.off('new-post', handleNewPost);
       ws.off('update-post', handleUpdatePost);
       ws.off('post-flamed', handlePostFlamed);
+      ws.off('delete-post', handlePostDeleted);
       ws.off('new-story', handleNewStory);
     });
 
@@ -262,6 +279,21 @@ export default defineComponent({
                 await api.updatePost(post.id, updated);
               } catch (err) {
                 console.error('Update post error:', err);
+              }
+            },
+            onDelete: async () => {
+              if (confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) {
+                try {
+                  await api.deletePost(post.id);
+                  // Retirer le post de la liste locale
+                  const index = posts.value.findIndex(p => p.id === post.id);
+                  if (index !== -1) {
+                    posts.value.splice(index, 1);
+                  }
+                } catch (err: any) {
+                  console.error('Delete post error:', err);
+                  toast.error(err.message || "Erreur lors de la suppression");
+                }
               }
             }
           }))

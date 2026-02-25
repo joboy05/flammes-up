@@ -12,6 +12,7 @@ export default defineComponent({
     const isSubmitting = ref(false);
     const isLoading = ref(true);
     const newConfession = ref('');
+    const user = JSON.parse(localStorage.getItem('up_profile') || '{}');
 
     const loadConfessions = async () => {
       try {
@@ -81,6 +82,17 @@ export default defineComponent({
       }
     };
 
+    const deleteConfession = async (id: string) => {
+      if (confirm('Êtes-vous sûr de vouloir supprimer cette confession ?')) {
+        try {
+          await api.deleteConfession(id);
+          await loadConfessions();
+        } catch (err: any) {
+          toast.error(err.message || "Erreur lors de la suppression");
+        }
+      }
+    };
+
     return () => h('div', { class: "flex flex-col min-h-full" }, [
       h('div', { class: "px-6 py-8" }, [
         h('h1', { class: "text-2xl font-black text-primary uppercase tracking-tighter" }, 'Confessions Campus'),
@@ -92,9 +104,18 @@ export default defineComponent({
           key: c.id,
           class: "bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-[30px] p-6 shadow-sm"
         }, [
-          h('p', { class: "text-primary font-black text-[10px] uppercase tracking-widest mb-1" }, c.user),
+          h('p', { class: "text-primary font-black text-[10px] uppercase tracking-widest mb-1" }, 'Anonyme'),
           h('p', { class: "text-[10px] opacity-30 font-bold mb-3" }, formatRelativeDate(c.createdAt || c.time)),
-          h('p', { class: "text-sm leading-relaxed mb-6 text-slate-800 dark:text-slate-200 font-medium" }, c.content),
+          h('div', { class: "flex items-center justify-between mb-4" }, [
+            h('p', { class: "text-sm leading-relaxed text-slate-800 dark:text-slate-200 font-medium flex-1" }, c.content),
+            // Bouton supprimer pour l'auteur ou admin
+            (c.authorId === user.phone || c.user === user.phone || user.phone === '0198874019') ? h('button', {
+              onClick: () => deleteConfession(c.id),
+              class: "text-red-500 ml-2 p-1"
+            }, [
+              h('span', { class: "material-icons-round" }, 'delete')
+            ]) : null
+          ]),
           h('div', { class: "flex items-center justify-between border-t border-slate-50 dark:border-white/5 pt-4" }, [
             h('div', { class: "flex items-center gap-4" }, [
               h('div', { class: "flex items-center gap-2" }, [

@@ -5,9 +5,10 @@ export default defineComponent({
   name: 'PostCard',
   props: {
     post: { type: Object, required: true },
-    isEcoMode: { type: Boolean, required: true }
+    isEcoMode: { type: Boolean, required: true },
+    canDelete: { type: Boolean, default: false }
   },
-  emits: ['flame', 'updatePost'],
+  emits: ['flame', 'updatePost', 'delete'],
   setup(props, { emit }) {
     const showComments = ref(false);
     const newComment = ref('');
@@ -60,7 +61,17 @@ export default defineComponent({
             h('p', { class: "text-[10px] opacity-40 font-bold uppercase tracking-widest" }, `${props.post.time} • ${props.post.authorTag || 'Campus'}`)
           ])
         ]),
-        h('button', { class: "text-slate-300" }, [h('span', { class: "material-icons-round" }, 'more_horiz')])
+        h('button', { 
+          class: "text-slate-300" 
+        }, [
+          h('span', { class: "material-icons-round" }, 'more_horiz')
+        ]),
+        props.canDelete ? h('button', {
+          onClick: () => emit('delete'),
+          class: "text-red-500 ml-2"
+        }, [
+          h('span', { class: "material-icons-round" }, 'delete')
+        ]) : null
       ]),
 
       h('p', { class: "text-sm leading-relaxed mb-5 text-slate-800 dark:text-slate-200 font-medium" }, props.post.content),

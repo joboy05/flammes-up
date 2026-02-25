@@ -131,6 +131,14 @@ export const api = {
         });
     },
 
+    async deletePost(id: string) {
+        const result = await request(`/posts/${id}`, {
+            method: 'DELETE'
+        });
+        toast.success('Post supprimé !');
+        return result;
+    },
+
     // === CONFESSIONS ===
     async getConfessions() {
         return request('/confessions');
@@ -156,6 +164,14 @@ export const api = {
             method: 'PATCH',
             body: JSON.stringify(data)
         });
+    },
+
+    async deleteConfession(id: string) {
+        const result = await request(`/confessions/${id}`, {
+            method: 'DELETE'
+        });
+        toast.success('Confession supprimée !');
+        return result;
     },
 
     // === STORIES ===
