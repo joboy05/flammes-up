@@ -125,6 +125,12 @@ export const api = {
         });
     },
 
+    async flamePost(id: string) {
+        return request(`/posts/${id}/flame`, {
+            method: 'POST'
+        });
+    },
+
     // === CONFESSIONS ===
     async getConfessions() {
         return request('/confessions');
@@ -139,10 +145,9 @@ export const api = {
         return result;
     },
 
-    async flameConfession(id: string, increment: number) {
+    async flameConfession(id: string) {
         return request(`/confessions/${id}/flame`, {
-            method: 'PATCH',
-            body: JSON.stringify({ increment })
+            method: 'PATCH'
         });
     },
 

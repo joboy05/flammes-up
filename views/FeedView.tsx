@@ -160,7 +160,7 @@ export default defineComponent({
           h('div', { class: "w-16 h-16 rounded-[22px] p-0.5 bg-gradient-to-tr from-primary via-orange-500 to-rose-400 group-active:scale-90 transition-all shadow-lg" }, [
             h('div', { class: "w-full h-full rounded-[20px] border-2 border-white dark:border-[#0f1115] overflow-hidden bg-slate-100" }, [
               h('img', {
-                src: s.content || 'assets/campus-story.svg',
+                src: s.content || '/assets/campus-story.svg',
                 class: "w-full h-full object-cover"
               })
             ])
@@ -198,17 +198,11 @@ export default defineComponent({
             post,
             isEcoMode: props.isEcoMode,
             onFlame: async () => {
-              const isFlambant = !post.stats.isFlambant;
-              const newStats = {
-                ...post.stats,
-                isFlambant,
-                flames: post.stats.flames + (isFlambant ? 1 : -1)
-              };
               try {
-                await api.updatePost(post.id, { stats: newStats });
-                post.stats = newStats;
-              } catch (err) {
-                // Revert on error
+                await api.flamePost(post.id);
+                // Note: Socket.IO will broadcast the update and handle the state change
+              } catch (err: any) {
+                toast.error(err.message || "Erreur lors du vote");
               }
             },
             onUpdatePost: async (updated: any) => {

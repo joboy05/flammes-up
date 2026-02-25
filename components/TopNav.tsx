@@ -9,7 +9,7 @@ export default defineComponent({
   },
   emits: ['openDrawer', 'openNotifications', 'openProfile', 'toggleTheme', 'goHome'],
   setup(props, { emit }) {
-    const defaultAvatar = 'assets/default-avatar.svg';
+    const defaultAvatar = '/assets/default-avatar.svg';
     const isInstallAvailable = ref(false);
 
     window.addEventListener('pwa-available', () => {
@@ -31,7 +31,7 @@ export default defineComponent({
           class: "flex items-center gap-3 cursor-pointer group"
         }, [
           h('div', { class: "w-10 h-10 bg-primary rounded-[14px] flex items-center justify-center shadow-xl shadow-primary/20 group-active:scale-95 transition-all overflow-hidden" }, [
-            h('img', { src: 'assets/logo-new.png', class: "w-full h-full object-contain p-1" })
+            h('img', { src: '/assets/logo-new.png', class: "w-full h-full object-contain p-1" })
           ]),
           h('div', { class: "flex flex-col -space-y-1" }, [
             h('h1', { class: "text-lg font-black text-slate-900 dark:text-white tracking-tighter" }, 'FLAMMES UP'),

@@ -9,9 +9,12 @@ export default defineComponent({
   setup(props, { emit }) {
     const items = ref<UserProfile[]>([]);
     const activeIndex = ref(0);
+    const votedIds = ref<Set<string>>(new Set());
     let unsubscribe: any = null;
 
     onMounted(() => {
+      const saved = sessionStorage.getItem('up_facematch_votes');
+      if (saved) votedIds.value = new Set(JSON.parse(saved));
       unsubscribe = db.subscribeUsers((users) => {
         const studentExamples: UserProfile[] = [
           {
@@ -74,6 +77,10 @@ export default defineComponent({
     };
 
     const handleVote = async (userId: string) => {
+      if (votedIds.value.has(userId)) {
+        return next();
+      }
+
       const student = items.value.find(i => i.phone === userId);
 
       // Animation "pop" sur le vote
@@ -88,6 +95,8 @@ export default defineComponent({
           easing: 'easeInBack',
           complete: async () => {
             if (student) {
+              votedIds.value.add(userId);
+              sessionStorage.setItem('up_facematch_votes', JSON.stringify([...votedIds.value]));
               await db.updateProfile(userId, { vibesReceived: (student.vibesReceived || 0) + 1 });
             }
             next();
@@ -95,6 +104,8 @@ export default defineComponent({
         });
       } else {
         if (student) {
+          votedIds.value.add(userId);
+          sessionStorage.setItem('up_facematch_votes', JSON.stringify([...votedIds.value]));
           await db.updateProfile(userId, { vibesReceived: (student.vibesReceived || 0) + 1 });
         }
         next();
@@ -127,7 +138,7 @@ export default defineComponent({
           ]
         }, [
           h('div', { class: "w-full h-full bg-slate-800 flex items-center justify-center" }, [
-            h('img', { src: item.avatar || 'assets/default-avatar.svg', class: "w-full h-full object-cover" })
+            h('img', { src: item.avatar || '/assets/default-avatar.svg', class: "w-full h-full object-cover" })
           ]),
           h('div', { class: "absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20" }),
           h('div', { class: "absolute bottom-12 left-8 right-8" }, [

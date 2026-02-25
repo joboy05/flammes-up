@@ -36,7 +36,7 @@ export default defineComponent({
           h('div', { class: "w-10 h-10 flex items-center justify-center font-black text-xl italic text-primary/30" }, `#${idx + 1}`),
           h('div', { class: "relative" }, [
             h('img', {
-              src: student.avatar || 'assets/default-avatar.svg',
+              src: student.avatar || '/assets/default-avatar.svg',
               class: "w-14 h-14 rounded-full border-2 border-primary/20 object-cover bg-slate-100"
             }),
             idx === 0 ? h('span', { class: "absolute -top-1 -right-1 material-icons-round text-yellow-500 text-xl" }, 'workspace_premium') : null

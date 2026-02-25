@@ -41,6 +41,7 @@ router.post('/', authMiddleware, async (req, res) => {
             content: content || '',
             type: type || 'text',
             stats: { flames: 0, comments: 0 },
+            flamedBy: [],
             commentsList: [],
             audioData: audioData || null,
             audioDuration: audioDuration || null,
@@ -62,13 +63,62 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 });
 
-// PATCH /api/posts/:id
+// POST /api/posts/:id/flame
+router.post('/:id/flame', authMiddleware, async (req, res) => {
+    try {
+        const postRef = doc(db, 'posts', req.params.id);
+        const postSnap = await getDoc(postRef);
+
+        if (!postSnap.exists()) {
+            return res.status(404).json({ error: 'Post non trouvé' });
+        }
+
+        const postData = postSnap.data();
+        const flamedBy = postData.flamedBy || [];
+        const userId = req.user.phone;
+        const isFlambant = flamedBy.includes(userId);
+
+        let newFlamedBy;
+        if (isFlambant) {
+            newFlamedBy = flamedBy.filter(id => id !== userId);
+        } else {
+            newFlamedBy = [...flamedBy, userId];
+        }
+
+        const flamesCount = newFlamedBy.length;
+        await updateDoc(postRef, {
+            flamedBy: newFlamedBy,
+            'stats.flames': flamesCount
+        });
+
+        if (req.io) {
+            req.io.emit('update-post', {
+                id: req.params.id,
+                stats: { ...postData.stats, flames: flamesCount },
+                flamedBy: newFlamedBy
+            });
+        }
+
+        res.json({
+            message: isFlambant ? 'Désenflammé' : 'Enflammé !',
+            isFlambant: !isFlambant,
+            flames: flamesCount
+        });
+    } catch (err) {
+        console.error('Flame error:', err);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+});
+
+// PATCH /api/posts/:id (for comments etc)
 router.patch('/:id', authMiddleware, async (req, res) => {
     try {
-        const { stats, commentsList } = req.body;
+        const { commentsList } = req.body;
         const updates = {};
-        if (stats) updates.stats = stats;
-        if (commentsList) updates.commentsList = commentsList;
+        if (commentsList) {
+            updates.commentsList = commentsList;
+            updates['stats.comments'] = commentsList.length;
+        }
 
         await updateDoc(doc(db, 'posts', req.params.id), updates);
 

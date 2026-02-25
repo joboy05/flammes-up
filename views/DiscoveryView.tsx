@@ -66,7 +66,7 @@ export default defineComponent({
                     class: "bg-white dark:bg-primary/5 border border-primary/10 p-4 rounded-[28px] flex items-center gap-4 shadow-sm"
                 }, [
                     h('img', {
-                        src: user.avatar || 'assets/default-avatar.svg',
+                        src: user.avatar || '/assets/default-avatar.svg',
                         class: "w-14 h-14 rounded-full border-2 border-primary/20 object-cover bg-slate-100"
                     }),
                     h('div', { class: "flex-1" }, [

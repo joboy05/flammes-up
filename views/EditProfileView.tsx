@@ -98,7 +98,7 @@ export default defineComponent({
           h('div', { onClick: triggerAvatarPicker, class: "relative cursor-pointer group" }, [
             h('div', { class: "w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-primary to-orange-500 shadow-2xl" }, [
               h('div', { class: "w-full h-full rounded-full overflow-hidden border-4 border-white dark:border-[#0f1115] bg-slate-100 flex items-center justify-center" }, [
-                h('img', { src: form.value.avatar || 'assets/default-avatar.svg', class: "w-full h-full object-cover" }),
+                h('img', { src: form.value.avatar || '/assets/default-avatar.svg', class: "w-full h-full object-cover" }),
               ])
             ]),
             h('div', { class: "absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full border-4 border-white dark:border-[#0f1115] flex items-center justify-center text-white shadow-xl" }, [

@@ -68,7 +68,7 @@ export default defineComponent({
                         }, [
                             h('div', { class: "flex items-center gap-3" }, [
                                 h('div', { class: "w-8 h-8 rounded-full bg-slate-100 overflow-hidden" }, [
-                                    h('img', { src: user.avatar || 'assets/default-avatar.svg', class: "w-full h-full object-cover" })
+                                    h('img', { src: user.avatar || '/assets/default-avatar.svg', class: "w-full h-full object-cover" })
                                 ]),
                                 h('div', [
                                     h('p', { class: "text-xs font-bold" }, user.name),

@@ -5,7 +5,7 @@ export default defineComponent({
   props: { user: Object, isDarkMode: Boolean },
   emits: ['edit', 'logout'],
   setup(props, { emit }) {
-    const defaultAvatar = 'assets/default-avatar.svg';
+    const defaultAvatar = '/assets/default-avatar.svg';
 
     return () => h('div', { class: "flex flex-col min-h-full pb-10" }, [
       h('div', { class: "p-8 space-y-10" }, [

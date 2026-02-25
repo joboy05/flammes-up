@@ -24,11 +24,11 @@ router.get('/', async (req, res) => {
 // POST /api/confessions
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { content } = req.body;
         const confessionData = {
             user: req.user.phone,
             content,
             flames: 0,
+            flamedBy: [],
             createdAt: Timestamp.now()
         };
 
@@ -46,15 +46,45 @@ router.post('/', authMiddleware, async (req, res) => {
 // PATCH /api/confessions/:id/flame
 router.patch('/:id/flame', authMiddleware, async (req, res) => {
     try {
-        const inc = req.body.increment || 1;
-        await updateDoc(doc(db, 'confessions', req.params.id), {
-            flames: increment(inc)
+        const confRef = doc(db, 'confessions', req.params.id);
+        const confSnap = await getDoc(confRef);
+
+        if (!confSnap.exists()) {
+            return res.status(404).json({ error: 'Confession non trouvée' });
+        }
+
+        const confData = confSnap.data();
+        const flamedBy = confData.flamedBy || [];
+        const userId = req.user.phone;
+        const isAlreadyFlamed = flamedBy.includes(userId);
+
+        let newFlamedBy;
+        if (isAlreadyFlamed) {
+            newFlamedBy = flamedBy.filter(id => id !== userId);
+        } else {
+            newFlamedBy = [...flamedBy, userId];
+        }
+
+        const flamesCount = newFlamedBy.length;
+        await updateDoc(confRef, {
+            flamedBy: newFlamedBy,
+            flames: flamesCount
         });
 
-        if (req.io) req.io.emit('update-confession', { id: req.params.id, flameIncrement: inc });
+        if (req.io) {
+            req.io.emit('update-confession', {
+                id: req.params.id,
+                flames: flamesCount,
+                flamedBy: newFlamedBy
+            });
+        }
 
-        res.json({ message: 'Flame mis à jour' });
+        res.json({
+            message: isAlreadyFlamed ? 'Désenflammé' : 'Enflammé !',
+            flames: flamesCount
+        });
     } catch (err) {
+        console.error('Confession flame error:', err);
         res.status(500).json({ error: 'Erreur serveur' });
     }
 });

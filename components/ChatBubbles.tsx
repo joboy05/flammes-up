@@ -41,7 +41,7 @@ export default defineComponent({
                     class: "w-14 h-14 rounded-full border-2 border-white dark:border-[#1a1d23] shadow-2xl overflow-hidden hover:scale-110 active:scale-95 transition-all bg-white dark:bg-[#1a1d23] ring-2 ring-primary/20"
                 }, [
                     h('img', {
-                        src: bubble.avatar || 'assets/default-avatar.svg',
+                        src: bubble.avatar || '/assets/default-avatar.svg',
                         class: "w-full h-full object-cover"
                     }),
                     // Online badge (dummy for aesthetic)

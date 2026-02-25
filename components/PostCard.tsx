@@ -29,7 +29,7 @@ export default defineComponent({
       const comment = {
         id: Date.now().toString(),
         author: user.name || 'Étudiant UP',
-        avatar: user.avatar || 'assets/default-avatar.svg',
+        avatar: user.avatar || '/assets/default-avatar.svg',
         text: newComment.value,
         createdAt: new Date()
       };
@@ -53,7 +53,7 @@ export default defineComponent({
       h('div', { class: "flex items-center justify-between mb-4" }, [
         h('div', { class: "flex items-center gap-3" }, [
           h('div', { class: "relative" }, [
-            h('img', { src: props.post.avatar || 'assets/default-avatar.svg', class: "w-11 h-11 rounded-full object-cover border-2 border-primary/20" }),
+            h('img', { src: props.post.avatar || '/assets/default-avatar.svg', class: "w-11 h-11 rounded-full object-cover border-2 border-primary/20" }),
           ]),
           h('div', [
             h('p', { class: "font-bold text-sm" }, props.post.author),
@@ -120,7 +120,7 @@ export default defineComponent({
         ]),
         h('div', { class: "space-y-4 max-h-60 overflow-y-auto no-scrollbar" },
           comments.value.map(c => h('div', { class: "flex gap-3" }, [
-            h('img', { src: c.avatar || 'assets/default-avatar.svg', class: "w-8 h-8 rounded-full object-cover" }),
+            h('img', { src: c.avatar || '/assets/default-avatar.svg', class: "w-8 h-8 rounded-full object-cover" }),
             h('div', { class: "flex-1 bg-slate-50 dark:bg-white/5 rounded-2xl p-3" }, [
               h('p', { class: "text-[10px] font-black uppercase tracking-widest text-primary mb-1" }, c.author),
               h('p', { class: "text-xs font-medium opacity-80" }, c.text),

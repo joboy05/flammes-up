@@ -1,6 +1,6 @@
-
-import { defineComponent, ref, h, onMounted, onUnmounted } from 'vue';
-import { db, Confession } from '../services/db';
+import { defineComponent, ref, h, onMounted } from 'vue';
+import { api } from '../services/api';
+import { Confession } from '../services/db';
 import { toast } from '../services/toast';
 import { formatRelativeDate } from '../services/dates';
 
@@ -10,41 +10,45 @@ export default defineComponent({
     const confessions = ref<Confession[]>([]);
     const isPosting = ref(false);
     const isSubmitting = ref(false);
+    const isLoading = ref(true);
     const newConfession = ref('');
-    let unsubscribe: any = null;
 
-    onMounted(() => {
-      unsubscribe = db.subscribeConfessions((newConfessions) => {
-        confessions.value = newConfessions;
-      });
-    });
+    const loadConfessions = async () => {
+      try {
+        const data = await api.getConfessions();
+        confessions.value = data.confessions || [];
+      } catch (err) {
+        console.error("Error loading confessions:", err);
+      } finally {
+        isLoading.value = false;
+      }
+    };
 
-    onUnmounted(() => {
-      if (unsubscribe) unsubscribe();
-    });
+    onMounted(loadConfessions);
 
     const toggleFlame = async (c: Confession) => {
-      c.isFlamedByMe = !c.isFlamedByMe;
-      await db.toggleConfessionFlame(c.id, c.isFlamedByMe);
+      try {
+        const result = await api.flameConfession(c.id);
+        c.flames = result.flames;
+        // Optimization: toggle local state if we had one, 
+        // but for now we rely on the returned count.
+        // We'll also need a way to track if 'me' flamed it.
+        await loadConfessions();
+      } catch (err: any) {
+        toast.error(err.message || "Erreur");
+      }
     };
 
     const submitConfession = async () => {
       if (!newConfession.value.trim() || isSubmitting.value) return;
       isSubmitting.value = true;
       try {
-        const anon = `Anonyme #${Math.floor(1000 + Math.random() * 9000)}`;
-        const c: Partial<Confession> = {
-          user: anon,
-          content: newConfession.value.trim(),
-          flames: 0,
-          isFlamedByMe: false
-        };
-        await db.addConfession(c);
+        await api.createConfession(newConfession.value.trim());
         newConfession.value = '';
         isPosting.value = false;
-        toast.success("Confession propagée... 🤫");
+        await loadConfessions();
       } catch (err: any) {
-        toast.error("Échec de la propagation.");
+        toast.error("Échec de la publication.");
       } finally {
         isSubmitting.value = false;
       }
