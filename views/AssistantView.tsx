@@ -27,14 +27,19 @@ export default defineComponent({
 
     onMounted(scrollToBottom);
 
-    const handleImageUpload = (e: Event) => {
+    const handleImageUpload = async (e: Event) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (re) => {
-          selectedImage.value = re.target?.result as string;
-        };
-        reader.readAsDataURL(file);
+        try {
+          const { compressImage } = await import('../services/imageUtils');
+          selectedImage.value = await compressImage(file, 800, 800, 0.7);
+        } catch (err) {
+          const reader = new FileReader();
+          reader.onload = (re) => {
+            selectedImage.value = re.target?.result as string;
+          };
+          reader.readAsDataURL(file);
+        }
       }
     };
 

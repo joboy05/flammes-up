@@ -60,16 +60,21 @@ export default defineComponent({
             h('p', { class: "text-[10px] opacity-40 font-bold uppercase tracking-widest" }, `${props.post.time} • ${props.post.authorTag || 'Campus'}`)
           ])
         ]),
-        h('button', { class: "text-slate-300" }, [h('span', { class: "material-icons-round" }, 'more_horiz')])
+        h('button', {
+          class: "text-slate-300 active:text-primary transition-colors",
+          onClick: () => {
+            import('../services/toast').then(m => m.toast.info('Options du post (Bientôt)'));
+          }
+        }, [h('span', { class: "material-icons-round" }, 'more_horiz')])
       ]),
 
-      h('p', { class: "text-sm leading-relaxed mb-5 text-slate-800 dark:text-slate-200 font-medium" }, props.post.content),
+      h('p', { class: "text-sm leading-relaxed mb-5 text-slate-800 dark:text-slate-200 font-medium whitespace-pre-wrap" }, props.post.content),
 
       // Audio Player
-      props.post.type === 'audio' && props.post.audioData ? h('div', { class: "mb-6 bg-primary/5 rounded-2xl p-4 border border-primary/10 flex items-center gap-4" }, [
+      props.post.type === 'audio' && props.post.audioData ? h('div', { class: "mb-6 bg-primary/5 rounded-2xl p-4 border border-primary/10 flex items-center gap-4 cursor-pointer", onClick: togglePlay }, [
         h('audio', { ref: audioRef, src: props.post.audioData, onEnded: () => isPlaying.value = false, class: "hidden" }),
         h('button', {
-          onClick: togglePlay,
+          onClick: (e: Event) => { e.stopPropagation(); togglePlay(); },
           class: "w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
         }, [
           h('span', { class: "material-icons-round" }, isPlaying.value ? 'pause' : 'play_arrow')
@@ -85,7 +90,11 @@ export default defineComponent({
         ])
       ]) : null,
 
-      props.post.type === 'image' && props.post.image ? h('img', { src: props.post.image, class: "w-full rounded-2xl mb-4" }) : null,
+      props.post.type === 'image' && props.post.image ? h('img', {
+        src: props.post.image,
+        class: "w-full rounded-2xl mb-4 object-cover max-h-96 border border-primary/5",
+        onClick: () => window.open(props.post.image, '_blank')
+      }) : null,
 
       h('div', { class: "flex items-center gap-6 border-t border-slate-50 dark:border-white/5 pt-4" }, [
         h('button', {
@@ -97,18 +106,42 @@ export default defineComponent({
         ]),
         h('button', {
           onClick: () => showComments.value = !showComments.value,
-          class: "flex items-center gap-2 text-slate-400 active:scale-110 transition-all"
+          class: `flex items-center gap-2 transition-all active:scale-110 ${showComments.value ? 'text-primary' : 'text-slate-400'}`
         }, [
           h('span', { class: "material-icons-round text-2xl" }, 'chat_bubble_outline'),
           h('span', { class: "text-xs font-black" }, comments.value.length)
         ]),
-        h('button', { class: "flex items-center gap-2 text-slate-400 ml-auto" }, [
+        h('button', {
+          class: "flex items-center gap-2 text-slate-400 ml-auto active:scale-110 active:text-primary transition-all",
+          onClick: async () => {
+            if (navigator.share) {
+              try {
+                await navigator.share({
+                  title: 'Flammes UP - ' + props.post.author,
+                  text: props.post.content,
+                  url: window.location.href,
+                });
+              } catch (err) {
+                console.log('Share canceled', err);
+              }
+            } else {
+              import('../services/toast').then(m => m.toast.success('Lien copié !'));
+            }
+          }
+        }, [
           h('span', { class: "material-icons-round text-2xl" }, 'ios_share')
         ])
       ]),
 
-      showComments.value ? h('div', { class: "mt-6 pt-4 border-t border-slate-50 dark:border-white/5 space-y-4" }, [
-        h('div', { class: "flex gap-3 bg-slate-50 dark:bg-white/5 rounded-2xl p-2 px-4" }, [
+      showComments.value ? h('div', { class: "mt-6 pt-4 border-t border-slate-50 dark:border-white/5 space-y-4 animate-in slide-in-from-top-2" }, [
+        h('div', { class: "flex items-center justify-between mb-2" }, [
+          h('h4', { class: "text-xs font-black text-primary uppercase tracking-widest" }, "Commentaires"),
+          h('button', {
+            onClick: () => showComments.value = false,
+            class: "text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-full font-bold uppercase tracking-wider active:scale-95"
+          }, "Fermer")
+        ]),
+        h('div', { class: "flex gap-3 bg-slate-50 dark:bg-white/5 rounded-2xl p-2 px-4 border border-primary/10" }, [
           h('input', {
             value: newComment.value,
             onInput: (e: any) => newComment.value = e.target.value,
@@ -116,17 +149,17 @@ export default defineComponent({
             placeholder: "Ton commentaire...",
             class: "flex-1 bg-transparent border-none text-xs focus:ring-0 py-2 dark:text-white"
           }),
-          h('button', { onClick: addComment, class: "text-primary font-black text-[10px] uppercase tracking-widest px-2" }, "OK")
+          h('button', { onClick: addComment, class: "text-primary font-black text-[10px] uppercase tracking-widest px-2" }, "Envoyer")
         ]),
         h('div', { class: "space-y-4 max-h-60 overflow-y-auto no-scrollbar" },
-          comments.value.map(c => h('div', { class: "flex gap-3" }, [
-            h('img', { src: c.avatar || '/assets/default-avatar.svg', class: "w-8 h-8 rounded-full object-cover" }),
-            h('div', { class: "flex-1 bg-slate-50 dark:bg-white/5 rounded-2xl p-3" }, [
+          comments.value.length ? comments.value.map(c => h('div', { class: "flex gap-3" }, [
+            h('img', { src: c.avatar || '/assets/default-avatar.svg', class: "w-8 h-8 rounded-full object-cover border border-primary/10" }),
+            h('div', { class: "flex-1 bg-slate-50 dark:bg-white/5 border border-primary/5 rounded-2xl p-3" }, [
               h('p', { class: "text-[10px] font-black uppercase tracking-widest text-primary mb-1" }, c.author),
               h('p', { class: "text-xs font-medium opacity-80" }, c.text),
               h('p', { class: "text-[8px] opacity-30 font-bold mt-2" }, formatRelativeDate(c.createdAt || c.time))
             ])
-          ]))
+          ])) : h('p', { class: "text-xs text-center opacity-40 py-2" }, "Aucun commentaire pour le moment.")
         )
       ]) : null
     ]);
