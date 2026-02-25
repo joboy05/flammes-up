@@ -5,7 +5,6 @@ import { UserProfile } from '../types';
 export default defineComponent({
     name: 'ProfileSetupView',
     props: { user: { type: Object as () => UserProfile, required: true } },
-    emits: ['complete'],
     setup(props, { emit }) {
         const bio = ref(props.user.bio || '');
         const maritalStatus = ref(props.user.maritalStatus === 'non_defini' ? 'celibataire' : props.user.maritalStatus);
@@ -79,7 +78,13 @@ export default defineComponent({
                 onClick: handleSubmit,
                 disabled: !bio.value.trim(),
                 class: "mt-8 w-full bg-primary text-white font-black py-5 rounded-[24px] shadow-xl active:scale-95 disabled:opacity-20 transition-all uppercase tracking-widest text-sm"
-            }, "Commencer l'Arène")
+            }, "Commencer l'Arène"),
+
+            h('button', {
+                onClick: () => emit('skip'),
+                class: "mt-4 w-full bg-transparent text-slate-400 font-bold py-3 rounded-xl active:scale-95 transition-all text-xs uppercase tracking-widest"
+            }, "Plus tard")
         ]);
-    }
+    },
+    emits: ['complete', 'skip']
 });

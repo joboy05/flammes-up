@@ -220,10 +220,11 @@ export default defineComponent({
         return h(PublicFeedView, { onJoin: () => activeTab.value = 'auth' });
       }
 
-      if (!currentUser.value.isProfileComplete) {
+      if (!currentUser.value.isProfileComplete && activeTab.value !== 'feed') {
         return h(ProfileSetupView, {
           user: currentUser.value,
-          onComplete: handleProfileComplete
+          onComplete: handleProfileComplete,
+          onSkip: () => activeTab.value = 'feed'
         });
       }
 

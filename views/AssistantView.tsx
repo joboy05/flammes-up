@@ -5,13 +5,17 @@ export default defineComponent({
   name: 'ChatUPView',
   emits: ['back'],
   setup(props, { emit }) {
-    const messages = ref([
+    const STORAGE_KEY = 'chatup_history';
+    const savedMessages = localStorage.getItem(STORAGE_KEY);
+    const initialMessages = savedMessages ? JSON.parse(savedMessages) : [
       { role: 'model', text: "Wopé le boss ! Je suis ChatUP, ton majordome digital à Parakou. Tu veux savoir comment marche l'appli ou t'as besoin d'un conseil ?" }
-    ]);
+    ];
+
+    const messages = ref(initialMessages);
     const userInput = ref('');
     const isLoading = ref(false);
     const scrollRef = ref(null);
-    const selectedModel = ref<'gemini' | 'groq'>('gemini');
+    const selectedModel = ref<'gemini' | 'groq'>('groq');
 
     const scrollToBottom = async () => {
       await nextTick();
@@ -32,13 +36,14 @@ export default defineComponent({
       await scrollToBottom();
 
       try {
-        const SYSTEM_PROMPT = `Tu es ChatUP, l'assistant officiel de l'app "Flammes UP" à l'Université de Parakou.
-TON PERSONNAGE :
-- Tu es un étudiant master à l'UP, très cool, serviable mais "branché".
-- Ton langage : Français local de Parakou (Bénin). Utilise des expressions comme "Wopé le boss", "Anhan", "C'est gbelé", "Y'a quoi ?", "On est ensemble".
-- Connaissances : Tu connais les facultés (FLASH, FDSP, FASEG, etc.), le resto U (l'attente est longue !), les bus bleus, Zongo, le campus Nord.
-- Mission : Aider les nouveaux, partager les bons plans (bourse, inscriptions) et expliquer les fonctionnalités de l'app (FaceMatch, Secret Crush, Marché).
-- Règle d'or : Sois toujours positif et encourageant, comme un grand frère.`;
+        const SYSTEM_PROMPT = `Tu es ChatUP, l'assistant IA intelligent et attentionné de l'app "Flammes UP" à l'Université de Parakou.
+CONTEXTE ET RÔLE :
+- Tu es un étudiant en Master à l'UP, servant de mentor et de majordome digital.
+- TON OBJECTIF : Être ultra-attentionné. Retiens les détails que l'utilisateur te donne pour personnaliser tes réponses futures.
+- STYLE : Mélange d'intelligence artificielle sophistiquée et de culture locale de Parakou.
+- LANGAGE : Français dynamique avec des touches de "Parakou style" (Wopé, Anhan, Gbelé, On est ensemble).
+- COMPORTEMENT : Si l'utilisateur exprime une émotion (fatigue, joie, stress des examens), sois empathique et encourageant. Ne délire pas, reste dans le domaine du possible.
+- CONNAISSANCES : Campus UP (resto U, bus bleus, facultés FLASH/FDSP/FASEG), vie à Parakou (Zongo, Banikanni), et fonctionnalités de l'app (FaceMatch, Marché).`;
 
         if (selectedModel.value === 'gemini') {
           const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
@@ -47,7 +52,7 @@ TON PERSONNAGE :
           const lastUserMessage = messages.value[messages.value.length - 1].text;
           const contents = [
             { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
-            { role: 'model', parts: [{ text: "Wopé le boss ! Je suis ChatUP, ton majordome digital à Parakou. Y'a quoi ?" }] },
+            { role: 'model', parts: [{ text: "Wopé le boss ! Je suis ChatUP. On est ensemble !" }] },
             ...messages.value.slice(0, -1).map(m => ({ role: m.role, parts: [{ text: m.text }] })),
             { role: 'user', parts: [{ text: lastUserMessage }] }
           ];
@@ -118,6 +123,8 @@ TON PERSONNAGE :
             }
           }
         }
+        // Sauvegarder l'historique
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.value.slice(-20))); // Garder les 20 derniers
       } catch (e: any) {
         console.error("AI Error:", e);
         messages.value.push({ role: 'model', text: "Aïe, mon cerveau chauffe un peu ! " + (e.message || "Réessaie plus tard, le boss.") });
@@ -132,21 +139,37 @@ TON PERSONNAGE :
     }, [
       // Header
       h('header', { class: "flex items-center gap-4 px-5 py-4 border-b border-primary/10 bg-white/95 dark:bg-[#0f1115]/95 ios-blur shrink-0" }, [
-        h('button', { onClick: () => emit('back'), class: "w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center active:scale-90" }, [
+        h('button', {
+          onClick: () => {
+            // Clear history if user really wants to start fresh (optionnel)
+            emit('back');
+          }, class: "w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center active:scale-90"
+        }, [
           h('span', { class: "material-icons-round" }, 'arrow_back')
         ]),
         h('div', [
-          h('h1', { class: "text-lg font-black text-primary leading-tight" }, 'ChatUP'),
+          h('h1', { class: "text-lg font-black text-primary leading-tight" }, 'ChatUP AI'),
           h('div', { class: "flex items-center gap-2 mt-0.5" }, [
-            h('button', {
-              onClick: () => selectedModel.value = 'gemini',
-              class: `text-[8px] font-black uppercase px-2 py-0.5 rounded-full border transition-all ${selectedModel.value === 'gemini' ? 'bg-primary text-white border-primary' : 'border-primary/20 text-primary/40'}`
-            }, 'Gemini'),
             h('button', {
               onClick: () => selectedModel.value = 'groq',
               class: `text-[8px] font-black uppercase px-2 py-0.5 rounded-full border transition-all ${selectedModel.value === 'groq' ? 'bg-primary text-white border-primary' : 'border-primary/20 text-primary/40'}`
-            }, 'Groq (Llama 3)')
+            }, 'Groq Cloud (Default)'),
+            h('button', {
+              onClick: () => selectedModel.value = 'gemini',
+              class: `text-[8px] font-black uppercase px-2 py-0.5 rounded-full border transition-all ${selectedModel.value === 'gemini' ? 'bg-primary text-white border-primary' : 'border-primary/20 text-primary/40'}`
+            }, 'Gemini Flash')
           ])
+        ]),
+        h('button', {
+          onClick: () => {
+            if (confirm("Effacer la mémoire de ChatUP ?")) {
+              messages.value = [{ role: 'model', text: "Wopé ! Mémoire effacée. Quoi de neuf le boss ?" }];
+              localStorage.removeItem(STORAGE_KEY);
+            }
+          },
+          class: "ml-auto text-slate-400 hover:text-primary transition-colors"
+        }, [
+          h('span', { class: "material-icons-round text-xl" }, 'delete_sweep')
         ])
       ]),
 
