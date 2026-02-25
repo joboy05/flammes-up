@@ -90,10 +90,10 @@ export default defineComponent({
       h('div', { class: "flex items-center gap-6 border-t border-slate-50 dark:border-white/5 pt-4" }, [
         h('button', {
           onClick: () => emit('flame'),
-          class: ["flex items-center gap-2 transition-all active:scale-125", props.post.stats.isFlambant ? 'text-primary' : 'text-slate-400']
+          class: ["flex items-center gap-2 transition-all duration-150 active:scale-110", props.post.stats?.isFlambant ? 'text-red-500' : 'text-slate-400 hover:text-primary']
         }, [
-          h('span', { class: "material-icons-round text-2xl" }, props.post.stats.isFlambant ? 'local_fire_department' : 'whatshot'),
-          h('span', { class: "text-xs font-black" }, props.post.stats.flames)
+          h('span', { class: "material-icons-round text-2xl transition-transform duration-150" }, props.post.stats?.isFlambant ? 'local_fire_department' : 'whatshot'),
+          h('span', { class: "text-xs font-black" }, props.post.stats?.flames || 0)
         ]),
         h('button', {
           onClick: () => showComments.value = !showComments.value,

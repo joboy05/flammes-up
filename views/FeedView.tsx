@@ -31,10 +31,19 @@ export default defineComponent({
     const loadPosts = async () => {
       try {
         const data = await api.getPosts();
-        posts.value = (data.posts || []).map((p: any) => ({
-          ...p,
-          time: formatRelativeDate(p.createdAt)
-        }));
+        const user = JSON.parse(localStorage.getItem('up_profile') || '{}');
+        posts.value = (data.posts || []).map((p: any) => {
+          // Vérifier si l'utilisateur actuel a flambé ce post
+          const isFlambant = p.flamedBy?.includes(user.phone) || false;
+          return {
+            ...p,
+            time: formatRelativeDate(p.createdAt),
+            stats: {
+              ...p.stats,
+              isFlambant
+            }
+          };
+        });
       } catch (err) {
         console.error('Error loading posts:', err);
       } finally {
@@ -67,6 +76,22 @@ export default defineComponent({
       }
     };
 
+    const handlePostFlamed = (data: any) => {
+      const idx = posts.value.findIndex(p => p.id === data.id);
+      if (idx !== -1) {
+        const user = JSON.parse(localStorage.getItem('up_profile') || '{}');
+        const isFlambant = data.flamedBy?.includes(user.phone) || false;
+        posts.value[idx] = { 
+          ...posts.value[idx], 
+          stats: {
+            ...posts.value[idx].stats,
+            flames: data.flames,
+            isFlambant
+          }
+        };
+      }
+    };
+
     const handleNewStory = (story: any) => {
       if (!stories.value.find(s => s.id === story.id)) {
         stories.value.push(story);
@@ -79,12 +104,14 @@ export default defineComponent({
       // S'abonner aux events WebSocket
       ws.on('new-post', handleNewPost);
       ws.on('update-post', handleUpdatePost);
+      ws.on('post-flamed', handlePostFlamed);
       ws.on('new-story', handleNewStory);
     });
 
     onUnmounted(() => {
       ws.off('new-post', handleNewPost);
       ws.off('update-post', handleUpdatePost);
+      ws.off('post-flamed', handlePostFlamed);
       ws.off('new-story', handleNewStory);
     });
 
@@ -199,9 +226,34 @@ export default defineComponent({
             isEcoMode: props.isEcoMode,
             onFlame: async () => {
               try {
-                await api.flamePost(post.id);
-                // Note: Socket.IO will broadcast the update and handle the state change
+                // Optimisation: mise à jour optimiste immédiate
+                const postIndex = posts.value.findIndex(p => p.id === post.id);
+                if (postIndex === -1) return;
+                
+                const currentPost = posts.value[postIndex];
+                const wasFlamed = currentPost.stats?.isFlambant || false;
+                const newFlames = wasFlamed ? 
+                  Math.max(0, (currentPost.stats?.flames || 0) - 1) : 
+                  (currentPost.stats?.flames || 0) + 1;
+                
+                // Mise à jour instantanée UI
+                posts.value[postIndex] = {
+                  ...currentPost,
+                  stats: {
+                    ...currentPost.stats,
+                    flames: newFlames,
+                    isFlambant: !wasFlamed
+                  }
+                };
+                
+                // Appel API en arrière-plan
+                api.flamePost(post.id).catch(err => {
+                  // Rollback en cas d'erreur
+                  posts.value[postIndex] = currentPost;
+                  toast.error(err.message || "Erreur lors du vote");
+                });
               } catch (err: any) {
+                console.error('Flame error:', err);
                 toast.error(err.message || "Erreur lors du vote");
               }
             },
