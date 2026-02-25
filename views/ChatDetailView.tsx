@@ -117,16 +117,40 @@ export default defineComponent({
     const handleFileUpload = async (type: 'image' | 'video', e: any) => {
       const file = e.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
+
       const activeId = props.convId || (window as any)._activeConvId || 'default';
-      reader.onloadend = async () => {
-        await api.sendMessage(activeId, {
-          from: myPhone.value,
-          type: type,
-          mediaUrl: reader.result as string
-        });
-      };
-      reader.readAsDataURL(file);
+
+      if (type === 'image') {
+        try {
+          const { compressImage } = await import('../services/imageUtils');
+          const compressed = await compressImage(file, 800, 800, 0.7);
+          await api.sendMessage(activeId, {
+            from: myPhone.value,
+            type: type,
+            mediaUrl: compressed
+          });
+        } catch (err) {
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            await api.sendMessage(activeId, {
+              from: myPhone.value,
+              type: type,
+              mediaUrl: reader.result as string
+            });
+          };
+          reader.readAsDataURL(file);
+        }
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          await api.sendMessage(activeId, {
+            from: myPhone.value,
+            type: type,
+            mediaUrl: reader.result as string
+          });
+        };
+        reader.readAsDataURL(file);
+      }
       isMenuOpen.value = false;
     };
 

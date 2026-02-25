@@ -323,14 +323,25 @@ export default defineComponent({
               type: 'file',
               accept: 'image/*,video/*',
               class: "hidden",
-              onChange: (e: any) => {
+              onChange: async (e: any) => {
                 const file = e.target.files[0];
                 if (file) {
                   const type = file.type.startsWith('video') ? 'video' : 'image';
                   newStoryType.value = type;
-                  const reader = new FileReader();
-                  reader.onload = (re) => newStoryContent.value = re.target?.result as string;
-                  reader.readAsDataURL(file);
+                  if (type === 'image') {
+                    try {
+                      const { compressImage } = await import('../services/imageUtils');
+                      newStoryContent.value = await compressImage(file, 800, 800, 0.7);
+                    } catch (err) {
+                      const reader = new FileReader();
+                      reader.onload = (re) => newStoryContent.value = re.target?.result as string;
+                      reader.readAsDataURL(file);
+                    }
+                  } else {
+                    const reader = new FileReader();
+                    reader.onload = (re) => newStoryContent.value = re.target?.result as string;
+                    reader.readAsDataURL(file);
+                  }
                 }
               }
             })
