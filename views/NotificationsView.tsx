@@ -1,21 +1,41 @@
 
-import { defineComponent, ref, h } from 'vue';
+import { defineComponent, ref, h, onMounted } from 'vue';
+import { formatRelativeDate } from '../services/dates';
 
 export default defineComponent({
   name: 'NotificationsView',
   emits: ['back', 'navigate'],
   setup(props, { emit }) {
     const filter = ref('all');
-    const notifications = ref([
-      { id: 1, user: 'Moussa_UP', text: 'a enflammé votre post sur le Droit Civil.', time: '2 min', unread: true, type: 'like' },
-      { id: 2, user: 'Anonyme #42', text: 'a répondu à votre confession anonyme.', time: '15 min', unread: true, type: 'reply' },
-      { id: 3, user: 'Système UP', text: 'Le bus B-042 vient de quitter Zongo.', time: '1h', unread: false, type: 'system' },
-      { id: 4, user: 'Aminata Sow', text: 'vous a envoyé un message direct.', time: '3h', unread: false, type: 'message' },
-      { id: 5, user: 'BDE FLASH', text: 'nouveaux événements ajoutés à l\'agenda.', time: 'Hier', unread: false, type: 'system' }
-    ]);
+    const notifications = ref<any[]>([]);
+    const isLoading = ref(true);
+    const currentUserId = JSON.parse(localStorage.getItem('up_profile') || '{}').uid;
 
-    const markAllRead = () => {
+    const fetchNotifications = async () => {
+      if (!currentUserId) return;
+      try {
+        const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId;
+        const res = await fetch(url);
+        if (res.ok) {
+            notifications.value = await res.json();
+        }
+      } catch (e) {
+        console.error("Erreur chargement notifications:", e);
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
+    onMounted(fetchNotifications);
+
+    const markAllRead = async () => {
       notifications.value = notifications.value.map(n => ({ ...n, unread: false }));
+      if (currentUserId) {
+        try {
+          const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId + '/read-all';
+          await fetch(url, { method: 'PATCH' });
+        } catch(e) {}
+      }
     };
 
     return () => h('div', { class: "flex flex-col min-h-full bg-background-light dark:bg-background-dark" }, [
@@ -47,8 +67,16 @@ export default defineComponent({
           .filter(n => filter.value === 'all' || n.type === filter.value)
           .map(i => h('div', {
             key: i.id,
-            onClick: () => {
-              i.unread = false;
+            onClick: async () => {
+              if (i.unread) {
+                i.unread = false;
+                if (currentUserId && i.id) {
+                   try {
+                     const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId + '/read/' + i.id;
+                     await fetch(url, { method: 'PATCH' });
+                   } catch(e) {}
+                }
+              }
               let target = 'feed';
               if (i.type === 'message') target = 'messages';
               else if (i.type === 'reply') target = 'confessions';
@@ -65,9 +93,9 @@ export default defineComponent({
             ]),
             h('div', { class: "flex-1" }, [
               h('p', { class: `text-sm leading-snug ${i.unread ? 'font-bold' : 'text-slate-600 dark:text-slate-400'}` }, [
-                h('span', { class: "text-slate-900 dark:text-white" }, i.user), ' ', i.text
+                h('span', { class: "text-slate-900 dark:text-white" }, i.actorName || i.user || 'Anonyme'), ' ', i.message || i.text
               ]),
-              h('p', { class: "text-[10px] opacity-40 font-bold uppercase mt-1.5 tracking-wider" }, i.time)
+              h('p', { class: "text-[10px] opacity-40 font-bold uppercase mt-1.5 tracking-wider" }, i.createdAt ? formatRelativeDate(i.createdAt) : (i.time || ''))
             ]),
             i.unread ? h('div', { class: "w-2 h-2 rounded-full bg-primary mt-2 shadow-sm" }) : null
           ]))

@@ -1,5 +1,5 @@
-
 import { defineComponent, h } from 'vue';
+import { toast } from '../services/toast';
 
 export default defineComponent({
   name: 'HubView',
@@ -33,18 +33,17 @@ export default defineComponent({
     };
 
     const primaryServices = [
+<<<<<<< HEAD
       { id: 'crush', title: 'Flamme Secrète', icon: 'favorite', color: 'bg-gradient-to-tr from-pink-500 to-rose-600', subtitle: 'T\'as un/une crush sur qui ?', hot: true },
+=======
+>>>>>>> 7869551 (fix des erreurs de mon agent AI)
       { id: 'facematch', title: 'Face Match UP', icon: 'face', color: 'bg-gradient-to-tr from-blue-500 to-indigo-600', subtitle: 'Le top des vibreurs campus', new: true },
     ];
 
     const gridServices = [
-      { id: 'missions', title: 'Missions Cash', icon: 'payments', color: 'bg-emerald-500', subtitle: 'Gagne des FCFA' },
-      { id: 'alerts', title: 'Alertes Direct', icon: 'bolt', color: 'bg-orange-500', subtitle: 'Infos temps réel' },
-      { id: 'resto', title: 'Attente Resto', icon: 'restaurant', color: 'bg-amber-500', subtitle: 'Midi intelligent' },
       { id: 'assistant', title: 'ChatUP', icon: 'smart_toy', color: 'bg-primary', subtitle: 'Chatbot AI 24h/7' },
-      { id: 'transport', title: 'Bus UP', icon: 'directions_bus', color: 'bg-indigo-500', subtitle: 'Trajets Temps Réel' },
+      { id: 'resto', title: 'Attente Resto', icon: 'restaurant', color: 'bg-amber-500', subtitle: 'Midi intelligent' },
       { id: 'discovery', title: 'Annuaire Campus', icon: 'person_search', color: 'bg-accent', subtitle: 'Retrouve tes amis' },
-      { id: 'events', title: 'Agenda', icon: 'calendar_today', color: 'bg-purple-500', subtitle: 'Soirées & Galas' },
       { id: 'leaderboard', title: 'Classement', icon: 'leaderboard', color: 'bg-rose-500', subtitle: 'Top Vibeurs Campus' },
     ];
 
@@ -67,7 +66,7 @@ export default defineComponent({
             h('div', { class: "flex-1 text-left" }, [
               h('div', { class: "flex items-center gap-2" }, [
                 h('h3', { class: "font-black text-lg leading-tight" }, s.title),
-                s.hot ? h('span', { class: "bg-red-500 text-[8px] font-black px-1.5 py-0.5 rounded text-white uppercase animate-pulse" }, 'HOT') : null,
+                (s as any).hot ? h('span', { class: "bg-red-500 text-[8px] font-black px-1.5 py-0.5 rounded text-white uppercase animate-pulse" }, 'HOT') : null,
                 s.new ? h('span', { class: "bg-blue-500 text-[8px] font-black px-1.5 py-0.5 rounded text-white uppercase" }, 'NOUVEAU') : null
               ]),
               h('p', { class: "text-xs opacity-60 font-medium" }, s.subtitle)

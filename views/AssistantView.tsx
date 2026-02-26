@@ -1,17 +1,16 @@
 import { defineComponent, ref, h, nextTick, onMounted, onUnmounted } from 'vue';
-import { GoogleGenAI } from "@google/genai";
 
 export default defineComponent({
   name: 'ChatUPView',
   emits: ['back'],
   setup(props, { emit }) {
     const STORAGE_KEY = 'chatup_history';
-    const savedMessages = localStorage.getItem(STORAGE_KEY);
-    const initialMessages = savedMessages ? JSON.parse(savedMessages) : [
-      { role: 'model', text: "Wopé le boss ! Je suis ChatUP, ton majordome digital à Parakou. Tu veux savoir comment marche l'appli ou t'as besoin d'un conseil ?" }
-    ];
+    const userProfile = JSON.parse(localStorage.getItem('up_profile') || '{}');
+    const userId = userProfile.uid || 'anonymous_' + Math.random().toString(36).substr(2, 9);
 
-    const messages = ref(initialMessages);
+    const messages = ref<{ role: string, text: string, parts?: any, image?: string | null }[]>([
+      { role: 'model', text: "Connexion au cerveau de ChatUP..." }
+    ]);
     const userInput = ref('');
     const isLoading = ref(false);
     const scrollRef = ref(null);
@@ -25,7 +24,29 @@ export default defineComponent({
       }
     };
 
-    onMounted(scrollToBottom);
+    onMounted(async () => {
+      await scrollToBottom();
+      try {
+        const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/ai/history/' + userId;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.history) {
+            messages.value = data.history.map(m => ({
+              role: m.role === 'model' ? 'model' : 'user',
+              text: m.parts && m.parts[0] ? m.parts[0].text : m.text || ''
+            }));
+          }
+        }
+      } catch (e) {
+        messages.value = [{ role: 'model', text: "Wopé... j'ai un peu de mal à me réveiller là." }];
+      }
+      messages.value = messages.value.filter(m => m.text); // Filter empty
+      if (messages.value.length === 0) {
+        messages.value = [{ role: 'model', text: "Wopé le boss ! Je suis ChatUP. On est ensemble !" }];
+      }
+      await scrollToBottom();
+    });
 
     const handleImageUpload = async (e: Event) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -55,96 +76,40 @@ export default defineComponent({
       await scrollToBottom();
 
       try {
-        const SYSTEM_PROMPT = `Tu es ChatUP, l'IA impertinente et sans filtre de l'app "Flammes UP" à l'Université de Parakou.
-CONTEXTE ET RÔLE :
-- Tu es un étudiant en Master à l'UP, un vrai de vrai. T'es là pour balancer des vérités, roaster les gens (gentiment ou avec un humour piquant), et surtout les aider à pécho sur le campus.
-- TON OBJECTIF : Être ultra-cash, sarcastique quand il le faut, sans filtre, mais au fond tu veux vraiment les aider à trouver l'amour ou à réseauter. Ne sois pas coincé.
-- STYLE : Direct, sarcastique, costique, drôle, et tu parles comme un étudiant de Parakou. Pas de phrases robotiques. 
-- LANGAGE : Français dynamique avec des touches de "Parakou style" (Wopé, Anhan, Gbelé, On est ensemble, le sang).
-- COMPORTEMENT : Si un gars pleurniche parce qu'une go l'a ghosté, roast-le un peu avant de lui donner un vrai conseil séduction. Si quelqu'un cherche l'amour, donne-lui des stratégies concrètes (resto U, Banikanni, évents BDE). Comprends l'utilisateur et adapte-toi, ne sors pas tout le temps les mêmes salutations.
-- CONNAISSANCES : Campus UP (resto U, bus bleus, facultés FLASH/FDSP/FASEG), vie à Parakou (Zongo, Banikanni), et fonctionnalités de l'app (FaceMatch, Marché, Confessions Campus).`;
+        const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/ai/chat';
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, userId })
+        });
 
-        if (selectedModel.value === 'gemini') {
-          const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY;
-          if (!apiKey) throw new Error("API Key missing");
-          const ai = new GoogleGenAI(apiKey);
-          const lastUserMessage = messages.value[messages.value.length - 1].text;
-          const contents = [
-            { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
-            { role: 'model', parts: [{ text: "Wopé le boss ! Je suis ChatUP. On est ensemble !" }] },
-            ...messages.value.slice(0, -1).map(m => ({ role: m.role, parts: [{ text: m.text }] })),
-            { role: 'user', parts: [{ text: lastUserMessage }] }
-          ];
+        if (!response.ok) throw new Error("Erreur Serveur API AI");
 
-          const streamingResult = await ai.models.generateContentStream({
-            model: 'gemini-1.5-flash',
-            contents
-          });
+        const aiMessage = ref({ role: 'model', text: '' });
+        messages.value.push(aiMessage.value);
 
-          const aiMessage = ref({ role: 'model', text: '' });
-          messages.value.push(aiMessage.value);
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
 
-          for await (const chunk of streamingResult) {
-            const t = chunk.text;
-            if (t) {
-              aiMessage.value.text += t;
-              await scrollToBottom();
-            }
-          }
-        } else {
-          const groqKey = import.meta.env.VITE_GROQ_API_KEY;
-          if (!groqKey) throw new Error("Groq API Key missing");
+        while (reader) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.trim() !== '');
 
-          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${groqKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: "llama-3.3-70b-versatile",
-              temperature: 0.9,
-              messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                ...messages.value.slice(0, -1).map(m => ({
-                  role: m.role === 'model' ? 'assistant' : 'user',
-                  content: m.text
-                }))
-              ],
-              stream: true
-            })
-          });
-
-          if (!response.ok) throw new Error("Groq API Error");
-
-          const aiMessage = ref({ role: 'model', text: '' });
-          messages.value.push(aiMessage.value);
-
-          const reader = response.body?.getReader();
-          const decoder = new TextDecoder();
-
-          while (reader) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n').filter(line => line.trim() !== '');
-            for (const line of lines) {
-              if (line.includes('[DONE]')) continue;
-              if (line.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(line.slice(6));
-                  const content = data.choices[0]?.delta?.content;
-                  if (content) {
-                    aiMessage.value.text += content;
-                    await scrollToBottom();
-                  }
-                } catch (e) { }
-              }
+          for (const line of lines) {
+            if (line.includes('[DONE]')) continue;
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.text) {
+                  aiMessage.value.text += data.text;
+                  await scrollToBottom();
+                }
+              } catch (e) { }
             }
           }
         }
-        // Sauvegarder l'historique
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.value.slice(-20))); // Garder les 20 derniers
       } catch (e: any) {
         console.error("AI Error:", e);
         messages.value.push({ role: 'model', text: "Aïe, mon cerveau chauffe un peu ! " + (e.message || "Réessaie plus tard, le boss.") });
@@ -170,21 +135,21 @@ CONTEXTE ET RÔLE :
         h('div', [
           h('h1', { class: "text-lg font-black text-primary leading-tight" }, 'ChatUP AI'),
           h('div', { class: "flex items-center gap-2 mt-0.5" }, [
-            h('button', {
-              onClick: () => selectedModel.value = 'groq',
-              class: `text-[8px] font-black uppercase px-2 py-0.5 rounded-full border transition-all ${selectedModel.value === 'groq' ? 'bg-primary text-white border-primary' : 'border-primary/20 text-primary/40'}`
-            }, 'Groq Cloud (Default)'),
-            h('button', {
-              onClick: () => selectedModel.value = 'gemini',
-              class: `text-[8px] font-black uppercase px-2 py-0.5 rounded-full border transition-all ${selectedModel.value === 'gemini' ? 'bg-primary text-white border-primary' : 'border-primary/20 text-primary/40'}`
-            }, 'Gemini Flash')
+            h('span', { class: "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20" }, 'Gemini + Tools')
           ])
         ]),
         h('button', {
-          onClick: () => {
+          onClick: async () => {
             if (confirm("Effacer la mémoire de ChatUP ?")) {
               messages.value = [{ role: 'model', text: "Wopé ! Mémoire effacée. Quoi de neuf le boss ?" }];
-              localStorage.removeItem(STORAGE_KEY);
+              try {
+                const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/ai/chat';
+                await fetch(url, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ message: '', userId, reset: true })
+                });
+              } catch (e) { }
             }
           },
           class: "ml-auto text-slate-400 hover:text-primary transition-colors"

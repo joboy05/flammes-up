@@ -12,12 +12,12 @@ export default defineComponent({
       { id: 'feed', icon: 'home', label: 'Flux' },
       { id: 'confessions', icon: 'forum', label: 'Secrets' },
       { id: 'hub', icon: 'apps', label: 'Services' },
-      { id: 'marketplace', icon: 'storefront', label: 'Marché' },
+      { id: 'messages', icon: 'forum', label: 'Messages' },
       { id: 'profile', icon: 'person', label: 'Profil' },
     ];
 
-    return () => h('nav', { 
-      className: "fixed bottom-0 inset-x-0 max-w-md mx-auto h-20 bg-white/95 dark:bg-background-dark/95 ios-blur border-t border-primary/10 px-4 pb-6 pt-2 flex items-center justify-around z-50" 
+    return () => h('nav', {
+      className: "fixed bottom-0 inset-x-0 max-w-md mx-auto h-20 bg-white/95 dark:bg-background-dark/95 ios-blur border-t border-primary/10 px-4 pb-6 pt-2 flex items-center justify-around z-50"
     }, [
       tabs.map((tab) => {
         const isActive = props.activeTab === tab.id || (tab.id === 'hub' && ['transport', 'events', 'resources'].includes(props.activeTab));
