@@ -33,7 +33,7 @@ export default defineComponent({
     };
 
     const primaryServices = [
-      { id: 'crush', title: 'Flamme Secrète', icon: 'favorite', color: 'bg-gradient-to-tr from-pink-500 to-rose-600', subtitle: 'Qui a un crush sur toi ?', hot: true },
+      { id: 'crush', title: 'Flamme Secrète', icon: 'favorite', color: 'bg-gradient-to-tr from-pink-500 to-rose-600', subtitle: 'T\'as un/une crush sur qui ?', hot: true },
       { id: 'facematch', title: 'Face Match UP', icon: 'face', color: 'bg-gradient-to-tr from-blue-500 to-indigo-600', subtitle: 'Le top des vibreurs campus', new: true },
     ];
 

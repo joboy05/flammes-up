@@ -282,12 +282,8 @@ export default defineComponent({
               }
             },
             onDelete: async () => {
-              import('../services/toast').then(m => {
-                m.toast.info('🔧 Système de suppression en cours de développement', {
-                  duration: 4000,
-                  position: 'top-center'
-                });
-              });
+              console.log('Delete post clicked:', post.id);
+              toast.info('🔧 Système de suppression en cours de développement');
             }
           }))
       ) : null,

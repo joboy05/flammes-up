@@ -83,12 +83,9 @@ export default defineComponent({
     };
 
     const deleteConfession = async (id: string) => {
-      import('../services/toast').then(m => {
-        m.toast.info('🔧 Système de suppression en cours de développement', {
-          duration: 4000,
-          position: 'top-center'
-        });
-      });
+      console.log('Delete confession clicked:', id);
+      alert('🔧 Système de suppression en cours de développement');
+      toast.info('🔧 Système de suppression en cours de développement');
     };
 
     return () => h('div', { class: "flex flex-col min-h-full" }, [
