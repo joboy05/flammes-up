@@ -33,10 +33,7 @@ export default defineComponent({
     };
 
     const primaryServices = [
-<<<<<<< HEAD
       { id: 'crush', title: 'Flamme Secrète', icon: 'favorite', color: 'bg-gradient-to-tr from-pink-500 to-rose-600', subtitle: 'T\'as un/une crush sur qui ?', hot: true },
-=======
->>>>>>> 7869551 (fix des erreurs de mon agent AI)
       { id: 'facematch', title: 'Face Match UP', icon: 'face', color: 'bg-gradient-to-tr from-blue-500 to-indigo-600', subtitle: 'Le top des vibreurs campus', new: true },
     ];
 
