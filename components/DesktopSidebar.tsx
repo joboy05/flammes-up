@@ -1,5 +1,6 @@
 
 import { defineComponent, h } from 'vue';
+import { Motion } from '@motionone/vue';
 
 export default defineComponent({
   name: 'DesktopSidebar',
@@ -17,8 +18,8 @@ export default defineComponent({
       { id: 'profile', icon: 'person', label: 'Mon Profil' },
     ];
 
-    return () => h('aside', { 
-      class: "hidden md:flex flex-col w-20 lg:w-72 h-screen sticky top-0 bg-white dark:bg-background-dark border-r border-primary/5 p-4 lg:p-6" 
+    return () => h('aside', {
+      class: "hidden md:flex flex-col w-20 lg:w-72 h-screen sticky top-0 bg-white dark:bg-background-dark border-r border-primary/5 p-4 lg:p-6"
     }, [
       // Logo
       h('div', { class: "flex items-center gap-3 mb-10 px-2" }, [
@@ -29,19 +30,31 @@ export default defineComponent({
       ]),
 
       // Navigation
-      h('nav', { class: "flex-1 space-y-2" }, 
+      h('nav', { class: "flex-1 space-y-2" },
         navItems.map(item => {
           const isActive = props.activeTab === item.id;
-          return h('button', {
-            onClick: () => emit('updateActiveTab', item.id),
-            class: [
-              "w-full flex items-center gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl transition-all group",
-              isActive ? "bg-primary text-white shadow-xl shadow-primary/20" : "hover:bg-primary/5 text-slate-500"
-            ]
-          }, [
-            h('span', { class: ["material-icons-round", isActive ? "" : "group-hover:text-primary transition-colors"] }, item.icon),
-            h('span', { class: "hidden lg:block font-bold text-sm" }, item.label)
-          ])
+          return h(Motion, {
+            key: item.id,
+            press: { scale: 0.95 },
+            hover: { x: 5 },
+            class: "w-full"
+          }, {
+            default: () => h('button', {
+              onClick: () => emit('updateActiveTab', item.id),
+              class: [
+                "w-full flex items-center gap-4 p-3 lg:px-4 lg:py-3.5 rounded-2xl transition-all group",
+                isActive ? "bg-primary text-white shadow-xl shadow-primary/20" : "hover:bg-primary/5 text-slate-500"
+              ]
+            }, [
+              h(Motion, {
+                animate: isActive ? { scale: [1, 1.2, 1], rotate: [0, 10, 0] } : {},
+                transition: { duration: 0.3 }
+              }, {
+                default: () => h('span', { class: ["material-icons-round", isActive ? "" : "group-hover:text-primary transition-colors"] }, item.icon)
+              }),
+              h('span', { class: "hidden lg:block font-bold text-sm" }, item.label)
+            ])
+          })
         })
       ),
 

@@ -39,6 +39,7 @@ import PublicProfileView from './views/PublicProfileView';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { Device } from '@capacitor/device';
 import ChatBubbles, { ChatBubble } from './components/ChatBubbles';
+import { Motion } from '@motionone/vue';
 
 import { api } from './services/api';
 import { ws } from './services/socket';
@@ -417,7 +418,13 @@ export default defineComponent({
             ]
           }, [
             h('div', { class: isAuthenticated.value ? "max-w-3xl mx-auto h-full" : "h-full" }, [
-              renderMainContent()
+              h(Motion, {
+                key: activeTab.value,
+                initial: { opacity: 0, y: 10, scale: 0.98 },
+                animate: { opacity: 1, y: 0, scale: 1 },
+                transition: { duration: 0.4, easing: [0.22, 1, 0.36, 1] },
+                class: "h-full"
+              }, { default: () => renderMainContent() })
             ])
           ]),
 
