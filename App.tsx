@@ -34,6 +34,10 @@ import FaceMatchView from './views/FaceMatchView';
 import AdminDashboardView from './views/AdminDashboardView';
 import LeaderboardView from './views/LeaderboardView';
 import DiscoveryView from './views/DiscoveryView';
+import FriendsView from './views/FriendsView';
+import PublicProfileView from './views/PublicProfileView';
+import { PushNotifications } from '@capacitor/push-notifications';
+import { Device } from '@capacitor/device';
 import ChatBubbles, { ChatBubble } from './components/ChatBubbles';
 
 import { api } from './services/api';
@@ -101,6 +105,11 @@ export default defineComponent({
         activeTab.value = (e as any).detail;
       });
 
+      window.addEventListener('nav-profile', (e: any) => {
+        (window as any)._targetProfilePhone = (e as any).detail;
+        activeTab.value = 'public_profile';
+      });
+
       // Si déjà authentifié (token JWT valide), récupérer le profil depuis le backend
       if (isAuthenticated.value) {
         try {
@@ -121,6 +130,65 @@ export default defineComponent({
           isAuthenticated.value = false;
         }
       }
+
+      // Push Notifications Setup
+      const setupPush = async () => {
+        const info = await Device.getInfo();
+
+        // --- WEB NOTIFICATIONS ---
+        if (info.platform === 'web') {
+          if ('Notification' in window && Notification.permission === 'default') {
+            // Ne pas spammer immédiatement, attendre 5 secondes
+            setTimeout(async () => {
+              if (confirm("Voulez-vous activer les notifications pour recevoir les nouvelles confessions et les messages ? 🔥")) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                  toast.success("Notifications activées ! 🔔");
+                }
+              }
+            }, 5000);
+          }
+          return;
+        }
+
+        // --- NATIVE NOTIFICATIONS (ANDROID/IOS) ---
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+        if (permStatus.receive !== 'granted') return;
+
+        await PushNotifications.register();
+
+        PushNotifications.addListener('registration', (token) => {
+          console.log('Push registration success, token: ' + token.value);
+          // Enregistrer le token au backend si nécessaire
+          if (currentUser.value.phone) {
+            api.updateProfile({ pushToken: token.value }).catch(console.error);
+          }
+        });
+
+        PushNotifications.addListener('registrationError', (error) => {
+          console.error('Error on registration: ' + JSON.stringify(error));
+        });
+
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          toast.info(notification.body || 'Nouvelle notification');
+        });
+      };
+
+      ws.on('new-message', (data: any) => {
+        // Viber si possible
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+
+        // Si on n'est pas déjà dans la conversation, afficher un toast
+        const activeId = (window as any)._activeConvId;
+        if (activeId !== data.convId) {
+          toast.info(`Nouveau message de ${data.message.from}`);
+        }
+      });
+
+      setupPush();
 
       // Force hide preloader after mount
       hidePreloader();
@@ -290,8 +358,28 @@ export default defineComponent({
           }
         });
         case 'leaderboard': return h(LeaderboardView, { onBack: () => activeTab.value = 'hub' });
+        case 'friends': return h(FriendsView, { onBack: () => activeTab.value = 'hub', onNavigate: (t, p) => { activeTab.value = t as any; if (p) (window as any)._activeConvId = p.friend; } });
         case 'events': return h(EventsView, { onBack: () => activeTab.value = 'hub' });
         case 'resources': return h(ResourcesView, { onBack: () => activeTab.value = 'hub' });
+        case 'public_profile': return h(PublicProfileView, {
+          phone: (window as any)._targetProfilePhone,
+          onBack: () => activeTab.value = 'feed', // Or history.back? Feed is safer
+          onStartChat: (phone: string, name: string, avatar: string) => {
+            const myId = currentUser.value.phone;
+            const otherId = phone;
+            const convId = [myId, otherId].sort().join('-');
+            activeTab.value = 'chat_detail';
+            (window as any)._activeConvId = convId;
+
+            if (!activeBubbles.value.find(b => b.id === convId)) {
+              activeBubbles.value.push({
+                id: convId,
+                name: name || 'Contact',
+                avatar: avatar || ''
+              });
+            }
+          }
+        });
         default: return h(FeedView, { isEcoMode: isEcoMode.value });
       }
     };

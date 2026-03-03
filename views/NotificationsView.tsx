@@ -17,7 +17,7 @@ export default defineComponent({
         const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId;
         const res = await fetch(url);
         if (res.ok) {
-            notifications.value = await res.json();
+          notifications.value = await res.json();
         }
       } catch (e) {
         console.error("Erreur chargement notifications:", e);
@@ -34,7 +34,7 @@ export default defineComponent({
         try {
           const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId + '/read-all';
           await fetch(url, { method: 'PATCH' });
-        } catch(e) {}
+        } catch (e) { }
       }
     };
 
@@ -71,16 +71,17 @@ export default defineComponent({
               if (i.unread) {
                 i.unread = false;
                 if (currentUserId && i.id) {
-                   try {
-                     const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId + '/read/' + i.id;
-                     await fetch(url, { method: 'PATCH' });
-                   } catch(e) {}
+                  try {
+                    const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId + '/read/' + i.id;
+                    await fetch(url, { method: 'PATCH' });
+                  } catch (e) { }
                 }
               }
               let target = 'feed';
               if (i.type === 'message') target = 'messages';
               else if (i.type === 'reply') target = 'confessions';
               else if (i.type === 'like') target = 'feed';
+              else if (i.type === 'friend_request' || i.type === 'friend_accept') target = 'friends';
               emit('navigate', target);
             },
             class: `flex items-start gap-4 p-5 transition-colors cursor-pointer ${i.unread ? 'bg-primary/[0.03]' : 'active:bg-slate-50 dark:active:bg-primary/5'}`
@@ -89,7 +90,9 @@ export default defineComponent({
               i.type === 'like' ? h('span', { class: "material-icons-round text-primary" }, 'local_fire_department') :
                 i.type === 'reply' ? h('span', { class: "material-icons-round text-blue-500" }, 'reply') :
                   i.type === 'message' ? h('span', { class: "material-icons-round text-green-500" }, 'chat_bubble') :
-                    h('span', { class: "material-icons-round text-slate-400" }, 'info')
+                    i.type === 'friend_request' ? h('span', { class: "material-icons-round text-indigo-500" }, 'person_add') :
+                      i.type === 'friend_accept' ? h('span', { class: "material-icons-round text-indigo-500" }, 'people') :
+                        h('span', { class: "material-icons-round text-slate-400" }, 'info')
             ]),
             h('div', { class: "flex-1" }, [
               h('p', { class: `text-sm leading-snug ${i.unread ? 'font-bold' : 'text-slate-600 dark:text-slate-400'}` }, [

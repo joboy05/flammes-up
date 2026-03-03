@@ -3,6 +3,7 @@ import { defineComponent, ref, h, onMounted, onUnmounted, nextTick, watch, Trans
 import { db } from '../services/db';
 import { api } from '../services/api';
 import { ws } from '../services/socket';
+import { formatRelativeDate } from '../services/dates';
 import AudioRecorder from '../components/AudioRecorder';
 
 import { ChatMessage } from '../types';
@@ -236,7 +237,7 @@ export default defineComponent({
                 ])
               ]) : null,
 
-              h('p', { class: "text-[8px] mt-1 font-bold opacity-40 text-right uppercase" }, m.time)
+              h('p', { class: "text-[8px] mt-1 font-bold opacity-40 text-right uppercase" }, formatRelativeDate(m.createdAt))
             ])
           ]);
         })

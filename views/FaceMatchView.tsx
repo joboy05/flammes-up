@@ -1,4 +1,5 @@
-import { defineComponent, ref, onMounted, onUnmounted, h } from 'vue';
+import { defineComponent, ref, h, onMounted, onUnmounted } from 'vue';
+import anime from 'animejs';
 import { db } from '../services/db';
 import { UserProfile } from '../types';
 
@@ -20,7 +21,7 @@ export default defineComponent({
           {
             name: 'Bhilal',
             phone: 'example-bhial',
-            faculty: 'Droit',
+            faculty: 'FADESP',
             level: 'Licence 3',
             residence: 'BADEA-A',
             maritalStatus: 'celibataire',
@@ -112,6 +113,23 @@ export default defineComponent({
       }
     };
 
+    const handleChallenge = async () => {
+      const shareData = {
+        title: 'Face Match UP - Parakou',
+        text: 'Qui est le plus beau ou la plus belle à l\'Université de Parakou ? Viens voter pour moi ou tes amis sur Face Match UP ! 🔥✨',
+        url: window.location.origin
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+          import('../services/toast').then(m => m.toast.success("Lien de défi copié ! Partage-le sur WhatsApp ! ✨"));
+        }
+      } catch (err) { }
+    };
+
     return () => h('div', { class: "min-h-screen bg-[#0f1115] text-white flex flex-col overflow-hidden" }, [
       h('header', { class: "p-6 flex items-center justify-between z-50 bg-gradient-to-b from-black/60 to-transparent" }, [
         h('button', { onClick: () => emit('back'), class: "w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/10 active:scale-90 transition-all" }, [
@@ -161,7 +179,17 @@ export default defineComponent({
               ])
             ])
           ])
-        ]))
+        ])),
+
+        h('div', { class: "absolute bottom-6 left-6 right-6 z-30" }, [
+          h('button', {
+            onClick: handleChallenge,
+            class: "w-full py-4 rounded-[28px] bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center gap-3 active:scale-95 transition-all"
+          }, [
+            h('span', { class: "material-icons-round text-primary" }, 'share'),
+            h('span', { class: "font-black text-[10px] uppercase tracking-[0.2em]" }, 'Défier mes amis sur WhatsApp')
+          ])
+        ])
       ])
     ]);
   }

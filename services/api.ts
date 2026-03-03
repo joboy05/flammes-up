@@ -85,6 +85,10 @@ export const api = {
         return request('/auth/me');
     },
 
+    async getPublicProfile(phone: string) {
+        return request(`/auth/profile/${phone}`);
+    },
+
     async updateProfile(data: any) {
         const result = await request('/auth/profile', {
             method: 'PATCH',
@@ -105,8 +109,9 @@ export const api = {
     },
 
     // === POSTS ===
-    async getPosts() {
-        return request('/posts');
+    async getPosts(params: { lastSeeId?: string; limit?: number } = {}) {
+        const query = new URLSearchParams(params as any).toString();
+        return request(`/posts?${query}`);
     },
 
     async createPost(data: any) {
@@ -279,5 +284,24 @@ export const api = {
 
     async getUsers() {
         return request('/users');
+    },
+
+    async adminGetAllUsers() {
+        return request('/admin/users/all');
+    },
+
+    async adminUpdateUser(phone: string, data: any) {
+        return request(`/admin/users/${phone}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async getTrends() {
+        return request('/posts/trends');
+    },
+
+    async getConfigServices() {
+        return request('/general/config/services');
     }
 };

@@ -1,7 +1,11 @@
-
 import { defineComponent, ref, onMounted, computed, h } from 'vue';
 import { api } from '../services/api';
 import { UserProfile } from '../types';
+import { toast } from '../services/toast';
+
+declare interface ImportMeta {
+    readonly env: any;
+}
 
 export default defineComponent({
     name: 'DiscoveryView',
@@ -73,16 +77,37 @@ export default defineComponent({
                         h('h3', { class: "font-black text-[15px]" }, user.name),
                         h('p', { class: "text-[10px] font-bold text-primary uppercase" }, user.faculty || 'Non défini')
                     ]),
-                    h('button', {
-                        onClick: () => emit('startChat', user.phone, user.name, user.avatar),
-                        class: "bg-primary text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all"
-                    }, [
-                        h('span', { class: "material-icons-round text-lg" }, 'chat_bubble')
+                    h('div', { class: "flex gap-2" }, [
+                        h('button', {
+                            onClick: () => emit('startChat', user.phone, user.name, user.avatar),
+                            class: "w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center active:scale-90 transition-all"
+                        }, [
+                            h('span', { class: "material-icons-round text-sm" }, 'chat')
+                        ]),
+                        h('button', {
+                            onClick: async () => {
+                                try {
+                                    const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/friends/request', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${localStorage.getItem('up_token')}`
+                                        },
+                                        body: JSON.stringify({ targetPhone: user.phone })
+                                    });
+                                    const data = await res.json();
+                                    if (res.ok) toast.success("Demande d'ami envoyée ! 🔥");
+                                    else toast.error(data.error || "Erreur");
+                                } catch (e) {
+                                    toast.error("Erreur serveur");
+                                }
+                            },
+                            class: "w-8 h-8 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center active:scale-90 transition-all"
+                        }, [
+                            h('span', { class: "material-icons-round text-sm" }, 'person_add')
+                        ])
                     ])
-                ])) : h('div', { class: "text-center py-20 opacity-30" }, [
-                    h('span', { class: "material-icons-round text-5xl mb-4" }, 'person_search'),
-                    h('p', { class: "font-black" }, "Aucun étudiant trouvé")
-                ]))
+                ])) : h('div', { class: "flex items-center justify-center py-20 opacity-20" }, "Aucun profil trouvé"))
             ])
         ]);
     }

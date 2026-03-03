@@ -41,9 +41,12 @@ export default defineComponent({
           h('nav', { class: "flex-1 space-y-1" },
             items.map(i => h('button', {
               onClick: () => emit('select', i.id),
-              class: "w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-primary/5 text-slate-600 dark:text-slate-300 hover:text-primary active:scale-95 transition-all text-left"
+              class: `w-full flex items-center gap-4 p-4 rounded-2xl transition-all text-left group ${i.id === 'install'
+                  ? 'bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20 mt-4 mb-2'
+                  : 'hover:bg-primary/5 text-slate-600 dark:text-slate-300 hover:text-primary'
+                } active:scale-95`
             }, [
-              h('span', { class: "material-icons-round" }, i.icon),
+              h('span', { class: `material-icons-round ${i.id === 'install' ? 'animate-bounce-slow' : ''}` }, i.icon),
               h('span', { class: "font-bold text-sm" }, i.label)
             ]))
           ),

@@ -1,6 +1,7 @@
 import { defineComponent, h, ref, onMounted, onUnmounted } from 'vue';
 import { api } from '../services/api';
 import { ws } from '../services/socket';
+import { formatRelativeDate } from '../services/dates';
 
 export default defineComponent({
   name: 'MessagesView',
@@ -28,6 +29,17 @@ export default defineComponent({
     onUnmounted(() => {
       ws.off('conversations-updated', loadConversations);
     });
+
+    const ConvSkeleton = () => h('div', { class: "flex items-center gap-4 py-4 animate-pulse" }, [
+      h('div', { class: "w-14 h-14 rounded-full bg-primary/5 dark:bg-white/5" }),
+      h('div', { class: "flex-1 space-y-2" }, [
+        h('div', { class: "flex justify-between items-baseline" }, [
+          h('div', { class: "h-3 bg-primary/5 dark:bg-white/10 rounded w-28" }),
+          h('div', { class: "h-2 bg-primary/5 dark:bg-white/10 rounded w-10" })
+        ]),
+        h('div', { class: "h-3 bg-primary/5 dark:bg-white/5 rounded w-full" })
+      ])
+    ]);
 
     return () => h('div', { class: "flex flex-col min-h-full bg-background-light dark:bg-background-dark" }, [
       h('header', { class: "sticky top-0 z-40 bg-white/80 dark:bg-background-dark/80 ios-blur px-5 pt-10 pb-4 flex items-center justify-between" }, [
@@ -57,10 +69,13 @@ export default defineComponent({
       ]),
 
       h('div', { class: "px-5 divide-y divide-primary/5 mt-4 pb-20" },
-        isLoading.value ? h('div', { class: "py-20 text-center opacity-40" }, [
-          h('span', { class: "material-icons-round animate-spin text-4xl mb-4" }, 'refresh'),
-          h('p', { class: "font-bold text-xs uppercase tracking-widest" }, "Chargement...")
-        ]) : (
+        isLoading.value ? [
+          ConvSkeleton(),
+          ConvSkeleton(),
+          ConvSkeleton(),
+          ConvSkeleton(),
+          ConvSkeleton()
+        ] : (
           conversations.value.length > 0 ? conversations.value.map(c => h('div', {
             key: c.id,
             onClick: () => emit('openChat', c.id),
@@ -80,7 +95,7 @@ export default defineComponent({
             h('div', { class: "flex-1 min-w-0" }, [
               h('div', { class: "flex justify-between items-baseline mb-0.5" }, [
                 h('h3', { class: "font-bold text-[15px] truncate" }, c.name),
-                h('span', { class: `text-[11px] font-medium opacity-40` }, c.time)
+                h('span', { class: `text-[11px] font-medium opacity-40` }, formatRelativeDate(c.updatedAt, true))
               ]),
               h('div', { class: "flex items-center justify-between" }, [
                 h('p', { class: `text-[13px] truncate ${c.unread ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-500'}` }, c.message),

@@ -70,6 +70,23 @@ export default defineComponent({
       }
     };
 
+    const handleBoost = async (p: Product) => {
+      const profile = db.getProfile();
+      if ((profile.upPoints || 0) < 50) {
+        toast.error("Tu n'as pas assez de Points UP (50 requis) pour booster cet article ! ✨");
+        return;
+      }
+
+      if (!confirm(`Veux-tu dépenser 50 Points UP pour booster "${p.title}" ?`)) return;
+
+      try {
+        await db.updateProfile(profile.phone, { upPoints: (profile.upPoints || 0) - 50 });
+        toast.success("Article boosté ! 🔥 Il apparaîtra en haut du fil bientôt.");
+      } catch (err) {
+        toast.error("Erreur technique lors du boost.");
+      }
+    };
+
     const categoryIcons: Record<string, string> = {
       'Électronique': 'laptop',
       'Cours': 'menu_book',
@@ -87,7 +104,16 @@ export default defineComponent({
       ]),
       h('div', { class: "p-5 space-y-5 pb-32" }, [
         h('span', { class: "bg-primary/10 text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase" }, p.category),
-        h('h1', { class: "text-2xl font-black mt-2" }, p.title),
+        h('div', { class: "flex items-center justify-between mt-2" }, [
+          h('h1', { class: "text-2xl font-black" }, p.title),
+          h('button', {
+            onClick: () => handleBoost(p),
+            class: "flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-600 rounded-full active:scale-90 transition-all border border-amber-500/20 shadow-sm"
+          }, [
+            h('span', { class: "material-icons-round text-sm" }, 'rocket_launch'),
+            h('span', { class: "text-[10px] font-black uppercase tracking-widest" }, 'Booster')
+          ])
+        ]),
         h('div', { class: "text-3xl font-black text-primary" }, [p.price, h('span', { class: "text-sm font-normal text-slate-500" }, ' FCFA')]),
 
         h('div', { class: "aspect-video rounded-[28px] overflow-hidden bg-primary/5 border-2 border-dashed border-primary/20 flex items-center justify-center" }, [

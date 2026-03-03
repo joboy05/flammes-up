@@ -1,4 +1,5 @@
 import { defineComponent, ref, h, nextTick, onMounted, onUnmounted } from 'vue';
+import anime from 'animejs';
 
 export default defineComponent({
   name: 'ChatUPView',
@@ -135,7 +136,7 @@ export default defineComponent({
         h('div', [
           h('h1', { class: "text-lg font-black text-primary leading-tight" }, 'ChatUP AI'),
           h('div', { class: "flex items-center gap-2 mt-0.5" }, [
-            h('span', { class: "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20" }, 'Gemini + Tools')
+            h('span', { class: "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20" }, 'Modèle 1.5 Flash + Insights')
           ])
         ]),
         h('button', {

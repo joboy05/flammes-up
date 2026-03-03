@@ -83,9 +83,13 @@ export default defineComponent({
     };
 
     const deleteConfession = async (id: string) => {
-      console.log('Delete confession clicked:', id);
-      alert('🔧 Système de suppression en cours de développement');
-      toast.info('🔧 Système de suppression en cours de développement');
+      if (!confirm('Voulez-vous vraiment supprimer cette confession ?')) return;
+      try {
+        await api.deleteConfession(id);
+        confessions.value = confessions.value.filter(c => c.id !== id);
+      } catch (err: any) {
+        toast.error(err.message || "Erreur lors de la suppression");
+      }
     };
 
     return () => h('div', { class: "flex flex-col min-h-full" }, [
@@ -94,8 +98,27 @@ export default defineComponent({
         h('p', { class: "text-[10px] font-bold opacity-40 uppercase tracking-[0.2em] mt-1" }, 'Ce qui se dit à Parakou reste à Parakou')
       ]),
 
-      h('div', { class: "p-4 space-y-4 pb-28" },
-        confessions.value.map(c => h('article', {
+      h('div', { class: "p-4 space-y-4 pb-28" }, [
+        // Confession de la Semaine
+        confessions.value.length > 0 ? h('div', {
+          class: "bg-gradient-to-br from-primary to-rose-600 p-6 rounded-[32px] shadow-xl shadow-primary/20 text-white mb-8 relative overflow-hidden"
+        }, [
+          h('div', { class: "absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl text-white" }),
+          h('div', { class: "flex items-center gap-2 mb-3" }, [
+            h('span', { class: "material-icons-round text-sm" }, 'auto_awesome'),
+            h('span', { class: "text-[9px] font-black uppercase tracking-[0.2em]" }, 'Confession de la Semaine')
+          ]),
+          h('p', { class: "text-lg font-bold leading-relaxed mb-4" }, `"${confessions.value.sort((a, b) => (b.flames || 0) - (a.flames || 0))[0].content}"`),
+          h('div', { class: "flex items-center justify-between" }, [
+            h('div', { class: "flex items-center gap-1.5" }, [
+              h('span', { class: "material-icons-round text-sm" }, 'local_fire_department'),
+              h('span', { class: "text-[10px] font-black" }, `${confessions.value[0].flames || 0} flammes`)
+            ]),
+            h('div', { class: "bg-white/20 px-3 py-1 rounded-full text-[9px] font-black uppercase" }, 'Gagnant Pass Resto U 🎁')
+          ])
+        ]) : null,
+
+        ...confessions.value.map(c => h('article', {
           key: c.id,
           class: "bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-[30px] p-6 shadow-sm"
         }, [
@@ -158,7 +181,7 @@ export default defineComponent({
           ]) : null
 
         ]))
-      ),
+      ]),
 
       // Modale d'ajout
       isPosting.value ? h('div', { class: "fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4" }, [

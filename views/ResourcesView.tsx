@@ -14,9 +14,9 @@ export default defineComponent({
 
     return () => h('div', { class: "flex flex-col min-h-full bg-white dark:bg-background-dark transition-colors duration-500" }, [
       h('header', { class: "sticky top-0 z-40 bg-white/80 dark:bg-background-dark/80 ios-blur px-5 py-4 border-b border-primary/10 flex items-center gap-4 transition-colors duration-500" }, [
-        h('button', { 
-          onClick: () => emit('back'), 
-          class: "w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center" 
+        h('button', {
+          onClick: () => emit('back'),
+          class: "w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center"
         }, [
           h('span', { class: "material-icons-round" }, 'arrow_back')
         ]),
@@ -36,17 +36,17 @@ export default defineComponent({
           ])
         ]),
 
-        h('div', { class: "flex gap-2 overflow-x-auto no-scrollbar mb-6" }, 
-          ['Toutes', 'FLASH', 'FDSP', 'IUT', 'FA', 'FSS'].map((f, i) => h('button', { 
-            key: f, 
-            class: `px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border border-primary/5 ${i === 0 ? 'bg-primary text-white shadow-md' : 'bg-primary/5 text-primary'}` 
+        h('div', { class: "flex gap-2 overflow-x-auto no-scrollbar mb-6" },
+          ['Toutes', 'FLASH', 'FADESP', 'FASEG', 'IUT', 'FM', 'IFSIO', 'AGRO', 'ENSPD', 'EPIDEMIO'].map((f, i) => h('button', {
+            key: f,
+            class: `px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border border-primary/5 ${i === 0 ? 'bg-primary text-white shadow-md' : 'bg-primary/5 text-primary'}`
           }, f))
         ),
 
-        h('div', { class: "space-y-3" }, 
-          resources.map(r => h('div', { 
-            key: r.id, 
-            class: "bg-white dark:bg-primary/5 p-4 rounded-2xl border border-primary/10 shadow-sm flex items-center gap-4" 
+        h('div', { class: "space-y-3" },
+          resources.map(r => h('div', {
+            key: r.id,
+            class: "bg-white dark:bg-primary/5 p-4 rounded-2xl border border-primary/10 shadow-sm flex items-center gap-4"
           }, [
             h('div', { class: "w-12 h-12 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center justify-center text-slate-400 border border-primary/5" }, [
               h('span', { class: "material-icons-round text-2xl" }, 'picture_as_pdf')

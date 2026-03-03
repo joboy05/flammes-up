@@ -25,37 +25,50 @@ export default defineComponent({
     const newStoryType = ref<'image' | 'video'>('image');
     const selectedStory = ref<Story | null>(null);
     const isLoadingPosts = ref(true);
+    const isLoadingMore = ref(false);
+    const hasMore = ref(true);
     const isSubmittingPost = ref(false);
     const isSubmittingStory = ref(false);
 
-    const loadPosts = async () => {
+    const loadPosts = async (isLoadMore = false) => {
+      if (isLoadMore) isLoadingMore.value = true;
+      else isLoadingPosts.value = true;
+
       try {
-        const data = await api.getPosts();
+        const lastPost = posts.value[posts.value.length - 1];
+        const data = await api.getPosts({
+          lastSeeId: isLoadMore && lastPost ? lastPost.id : undefined,
+          limit: 15
+        });
+
         const user = JSON.parse(localStorage.getItem('up_profile') || '{}');
-        console.log('Current user phone:', user.phone);
-        
-        posts.value = (data.posts || []).map((p: any) => {
-          // Vérifier si l'utilisateur actuel a flambé ce post
+        const newPosts = (data.posts || []).map((p: any) => {
           const isFlambant = p.flamedBy?.includes(user.phone) || false;
-          // Vérifier si l'utilisateur est l'auteur du post
           const canDelete = p.userId === user.phone || p.user === user.phone;
-          
-          console.log('Post:', p.id, 'userId:', p.userId, 'user:', p.user, 'canDelete:', canDelete);
-          
           return {
             ...p,
             time: formatRelativeDate(p.createdAt),
-            stats: {
-              ...p.stats,
-              isFlambant
-            },
+            stats: { ...p.stats, isFlambant },
             canDelete
           };
         });
+
+        if (isLoadMore) {
+          posts.value = [...posts.value, ...newPosts];
+        } else {
+          posts.value = newPosts;
+        }
+
+        if (newPosts.length < 15) {
+          hasMore.value = false;
+        } else {
+          hasMore.value = true;
+        }
       } catch (err) {
         console.error('Error loading posts:', err);
       } finally {
         isLoadingPosts.value = false;
+        isLoadingMore.value = false;
       }
     };
 
@@ -89,8 +102,8 @@ export default defineComponent({
       if (idx !== -1) {
         const user = JSON.parse(localStorage.getItem('up_profile') || '{}');
         const isFlambant = data.flamedBy?.includes(user.phone) || false;
-        posts.value[idx] = { 
-          ...posts.value[idx], 
+        posts.value[idx] = {
+          ...posts.value[idx],
           stats: {
             ...posts.value[idx].stats,
             flames: data.flames,
@@ -114,7 +127,10 @@ export default defineComponent({
     };
 
     onMounted(async () => {
-      await Promise.all([loadPosts(), loadStories()]);
+      // Priorité au feed (posts)
+      await loadPosts();
+      // Stories en arrière-plan
+      loadStories();
 
       // S'abonner aux events WebSocket
       ws.on('new-post', handleNewPost);
@@ -183,7 +199,29 @@ export default defineComponent({
       postingTab.value = 'text';
     };
 
-    return () => h('div', { class: "flex flex-col min-h-full pb-20" }, [
+    const PostSkeleton = () => h('div', { class: "bg-white dark:bg-[#1a1d23] border border-slate-100 dark:border-white/5 rounded-[32px] p-5 shadow-sm mb-4 animate-pulse" }, [
+      h('div', { class: "flex items-center gap-3 mb-4" }, [
+        h('div', { class: "w-11 h-11 rounded-full bg-slate-200 dark:bg-white/5" }),
+        h('div', { class: "flex-1 space-y-2" }, [
+          h('div', { class: "h-3 bg-slate-200 dark:bg-white/5 rounded w-24" }),
+          h('div', { class: "h-2 bg-slate-100 dark:bg-white/5 rounded w-16" })
+        ])
+      ]),
+      h('div', { class: "space-y-3 mb-4" }, [
+        h('div', { class: "h-3 bg-slate-100 dark:bg-white/5 rounded w-full" }),
+        h('div', { class: "h-3 bg-slate-100 dark:bg-white/5 rounded w-5/6" })
+      ]),
+      h('div', { class: "h-10 bg-slate-50 dark:bg-white/5 rounded-2xl w-full" })
+    ]);
+
+    return () => h('div', {
+      class: "flex flex-col min-h-full pb-20", onScroll: (e: any) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        if (scrollTop + clientHeight >= scrollHeight - 200 && !isLoadingMore.value && hasMore.value) {
+          loadPosts(true);
+        }
+      }
+    }, [
       // Horizontal Stories Bar
       h('div', { class: "px-5 py-6 flex gap-4 overflow-x-auto no-scrollbar bg-white dark:bg-transparent" }, [
         h('button', {
@@ -225,68 +263,77 @@ export default defineComponent({
         ])
       ]),
 
-      // Loading state
-      isLoadingPosts.value ? h('div', { class: "flex items-center justify-center py-20" }, [
-        h('div', { class: "w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" })
+      // Loading state (Skeletons)
+      isLoadingPosts.value ? h('div', { class: "p-4 space-y-4" }, [
+        PostSkeleton(),
+        PostSkeleton(),
+        PostSkeleton()
       ]) : null,
 
       // Posts
-      !isLoadingPosts.value ? h('div', { class: "p-4 space-y-4" },
+      !isLoadingPosts.value ? h('div', { class: "p-4 space-y-4" }, [
         posts.value.length === 0
-          ? [h('div', { class: "text-center py-20 opacity-40" }, [
+          ? h('div', { class: "text-center py-20 opacity-40" }, [
             h('span', { class: "material-icons-round text-5xl mb-4 block" }, 'local_fire_department'),
             h('p', { class: "text-sm font-bold uppercase tracking-widest" }, 'Aucun post encore. Sois le premier ! 🔥')
-          ])]
-          : posts.value.map(post => h(PostCard, {
-            key: post.id,
-            post,
-            isEcoMode: props.isEcoMode,
-            onFlame: async () => {
-              try {
-                // Optimisation: mise à jour optimiste immédiate
-                const postIndex = posts.value.findIndex(p => p.id === post.id);
-                if (postIndex === -1) return;
-                
-                const currentPost = posts.value[postIndex];
-                const wasFlamed = currentPost.stats?.isFlambant || false;
-                const newFlames = wasFlamed ? 
-                  Math.max(0, (currentPost.stats?.flames || 0) - 1) : 
-                  (currentPost.stats?.flames || 0) + 1;
-                
-                // Mise à jour instantanée UI
-                posts.value[postIndex] = {
-                  ...currentPost,
-                  stats: {
-                    ...currentPost.stats,
-                    flames: newFlames,
-                    isFlambant: !wasFlamed
-                  }
-                };
-                
-                // Appel API en arrière-plan
-                api.flamePost(post.id).catch(err => {
-                  // Rollback en cas d'erreur
-                  posts.value[postIndex] = currentPost;
+          ])
+          : [
+            ...posts.value.map(post => h(PostCard, {
+              key: post.id,
+              post,
+              isEcoMode: props.isEcoMode,
+              onFlame: async () => {
+                try {
+                  const postIndex = posts.value.findIndex(p => p.id === post.id);
+                  if (postIndex === -1) return;
+
+                  const currentPost = posts.value[postIndex];
+                  const wasFlamed = currentPost.stats?.isFlambant || false;
+                  const newFlames = wasFlamed ?
+                    Math.max(0, (currentPost.stats?.flames || 0) - 1) :
+                    (currentPost.stats?.flames || 0) + 1;
+
+                  posts.value[postIndex] = {
+                    ...currentPost,
+                    stats: {
+                      ...currentPost.stats,
+                      flames: newFlames,
+                      isFlambant: !wasFlamed
+                    }
+                  };
+
+                  api.flamePost(post.id).catch(err => {
+                    posts.value[postIndex] = currentPost;
+                    toast.error(err.message || "Erreur lors du vote");
+                  });
+                } catch (err: any) {
                   toast.error(err.message || "Erreur lors du vote");
-                });
-              } catch (err: any) {
-                console.error('Flame error:', err);
-                toast.error(err.message || "Erreur lors du vote");
+                }
+              },
+              onUpdatePost: async (updated: any) => {
+                try {
+                  await api.updatePost(post.id, updated);
+                } catch (err) {
+                  console.error('Update post error:', err);
+                }
+              },
+              onDelete: async () => {
+                try {
+                  await api.deletePost(post.id);
+                } catch (err: any) {
+                  toast.error(err.message || "Erreur lors de la suppression");
+                }
               }
-            },
-            onUpdatePost: async (updated: any) => {
-              try {
-                await api.updatePost(post.id, updated);
-              } catch (err) {
-                console.error('Update post error:', err);
-              }
-            },
-            onDelete: async () => {
-              console.log('Delete post clicked:', post.id);
-              toast.info('🔧 Système de suppression en cours de développement');
-            }
-          }))
-      ) : null,
+            })),
+
+            hasMore.value && posts.value.length > 0 ? h('div', { class: "pb-10 pt-4 flex flex-col items-center gap-4" }, [
+              isLoadingMore.value ? h('div', { class: "w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" }) : h('button', {
+                onClick: () => loadPosts(true),
+                class: "text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-6 py-3 rounded-full active:scale-95 transition-all"
+              }, "Charger plus d'étincelles")
+            ]) : (posts.value.length > 0 ? h('p', { class: "text-center py-10 opacity-20 text-[10px] font-black uppercase tracking-widest" }, "Tu as rattrapé tout le campus 🔥") : null)
+          ]
+      ]) : null,
 
       // Story Creator Modal
       isPostingStory.value ? h('div', { class: "fixed inset-0 z-[150] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 animate-in zoom-in duration-300" }, [

@@ -92,26 +92,44 @@ export default defineComponent({
               h('span', { class: "material-icons-round" }, 'close')
             ])
           ]),
-          h('div', { class: "space-y-4" }, [
-            h('div', { class: "flex gap-4 items-start" }, [
-              h('div', { class: "w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-black" }, "1"),
-              h('div', [
-                h('p', { class: "font-black text-sm" }, "Sur Safari (iOS)"),
-                h('p', { class: "text-xs opacity-60" }, "Appuie sur 'Partager' puis sur 'Sur l'écran d'accueil'.")
+          h('div', { class: "space-y-6" }, [
+            h('div', { class: "p-4 bg-blue-50 dark:bg-blue-500/10 rounded-2xl border border-blue-200 dark:border-blue-500/20" }, [
+              h('div', { class: "flex gap-4 items-start" }, [
+                h('span', { class: "material-icons-round text-blue-500" }, 'apple'),
+                h('div', [
+                  h('p', { class: "font-black text-sm text-blue-900 dark:text-blue-100" }, "Sur iPhone (Safari)"),
+                  h('p', { class: "text-xs opacity-70 mt-1" }, [
+                    "1. Appuie sur l'icône ",
+                    h('span', { class: "material-icons-round text-sm inline-block translate-y-1" }, 'ios_share'),
+                    " (Partager)",
+                    h('br'),
+                    "2. Fais défiler et choisis ",
+                    h('span', { class: "font-bold" }, "'Sur l'écran d'accueil'")
+                  ])
+                ])
               ])
             ]),
-            h('div', { class: "flex gap-4 items-start" }, [
-              h('div', { class: "w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-black" }, "2"),
-              h('div', [
-                h('p', { class: "font-black text-sm" }, "Sur Chrome (Android)"),
-                h('p', { class: "text-xs opacity-60" }, "Appuie sur les 3 points en haut à droite puis sur 'Installer l'application'.")
+            h('div', { class: "p-4 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl border border-emerald-200 dark:border-emerald-500/20" }, [
+              h('div', { class: "flex gap-4 items-start" }, [
+                h('span', { class: "material-icons-round text-emerald-500" }, 'android'),
+                h('div', [
+                  h('p', { class: "font-black text-sm text-emerald-900 dark:text-emerald-100" }, "Sur Android (Chrome)"),
+                  h('p', { class: "text-xs opacity-70 mt-1" }, [
+                    "1. Appuie sur les ",
+                    h('span', { class: "font-bold" }, "3 points"),
+                    " en haut à droite",
+                    h('br'),
+                    "2. Appuie sur ",
+                    h('span', { class: "font-bold" }, "'Installer l'application'")
+                  ])
+                ])
               ])
             ])
           ]),
           h('button', {
             onClick: () => showHelp.value = false,
             class: "w-full py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
-          }, "J'ai compris")
+          }, "C'est parti ! 🔥")
         ])
       ]) : null
     ]);

@@ -44,3 +44,27 @@ self.addEventListener('fetch', (event) => {
         })
     );
 });
+// Handle push notifications
+self.addEventListener('push', (event) => {
+    const data = event.data ? event.data.json() : { title: 'Notification', body: 'Nouveau message sur Flammes UP' };
+
+    const options = {
+        body: data.body,
+        icon: '/assets/logo-premium.png',
+        badge: '/assets/logo-premium.png',
+        data: {
+            url: data.url || '/'
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        clients.openWindow(event.notification.data.url)
+    );
+});

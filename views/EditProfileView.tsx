@@ -36,32 +36,52 @@ export default defineComponent({
     const triggerAvatarPicker = () => fileInputRef.value?.click();
     const triggerGalleryPicker = () => galleryInputRef.value?.click();
 
-    const handleAvatarChange = (e: any) => {
+    const handleAvatarChange = async (e: any) => {
       const file = e.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (event: any) => {
-        if (event.target && typeof event.target.result === 'string') {
-          form.value.avatar = event.target.result;
-        }
-      };
-      reader.readAsDataURL(file);
-    };
-
-    const handleGalleryChange = (e: any) => {
-      const files = e.target.files;
-      if (!files.length) return;
-
-      Array.from(files).forEach((file: any) => {
+      try {
+        const { compressImage } = await import('../services/imageUtils');
+        form.value.avatar = await compressImage(file, 400, 400, 0.6); // Petit format pour l'avatar
+      } catch (err) {
+        console.error("Compression avatar échouée:", err);
         const reader = new FileReader();
         reader.onload = (event: any) => {
           if (event.target && typeof event.target.result === 'string') {
-            if (!form.value.gallery) form.value.gallery = [];
-            form.value.gallery.push(event.target.result);
+            form.value.avatar = event.target.result;
           }
         };
         reader.readAsDataURL(file);
-      });
+      }
+    };
+
+    const handleGalleryChange = async (e: any) => {
+      const files = e.target.files;
+      if (!files.length) return;
+
+      const { compressImage } = await import('../services/imageUtils');
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          if (file.type.startsWith('image/')) {
+            const compressed = await compressImage(file, 800, 800, 0.7);
+            if (!form.value.gallery) form.value.gallery = [];
+            form.value.gallery.push(compressed);
+          } else {
+            // Pour les vidéos ou autres, fallback reader (pas de compression canvas)
+            const reader = new FileReader();
+            reader.onload = (event: any) => {
+              if (event.target && typeof event.target.result === 'string') {
+                if (!form.value.gallery) form.value.gallery = [];
+                form.value.gallery.push(event.target.result);
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        } catch (err) {
+          console.error("Erreur média:", err);
+        }
+      }
       toast.success(`${files.length} média(s) ajouté(s)`);
     };
 

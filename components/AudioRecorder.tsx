@@ -9,15 +9,36 @@ export default defineComponent({
     const audioChunks = ref<Blob[]>([]);
     const duration = ref(0);
     const timerInterval = ref<any>(null);
+    const activeStream = ref<MediaStream | null>(null);
 
-    const startRecording = async () => {
+    const cleanup = () => {
+      if (timerInterval.value) {
+        clearInterval(timerInterval.value);
+        timerInterval.value = null;
+      }
+      if (activeStream.value) {
+        activeStream.value.getTracks().forEach(track => {
+          track.stop();
+          console.log('🎤 Micro désactivé');
+        });
+        activeStream.value = null;
+      }
+    };
+
+    const startRecording = async (e: Event) => {
+      if (e) e.preventDefault();
+      if (isRecording.value) return;
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        activeStream.value = stream;
         mediaRecorder.value = new MediaRecorder(stream);
         audioChunks.value = [];
 
         mediaRecorder.value.ondataavailable = (event) => {
-          audioChunks.value.push(event.data);
+          if (event.data.size > 0) {
+            audioChunks.value.push(event.data);
+          }
         };
 
         mediaRecorder.value.onstop = async () => {
@@ -28,9 +49,9 @@ export default defineComponent({
               data: reader.result,
               duration: `${Math.floor(duration.value / 60)}:${(duration.value % 60).toString().padStart(2, '0')}`
             });
+            cleanup();
           };
           reader.readAsDataURL(audioBlob);
-          stream.getTracks().forEach(track => track.stop());
         };
 
         mediaRecorder.value.start();
@@ -42,34 +63,37 @@ export default defineComponent({
       } catch (err) {
         console.error("Erreur micro:", err);
         alert("Accès micro refusé ou non supporté.");
+        cleanup();
       }
     };
 
-    const stopRecording = () => {
+    const stopRecording = (e: Event) => {
+      if (e) e.preventDefault();
       if (mediaRecorder.value && isRecording.value) {
         mediaRecorder.value.stop();
         isRecording.value = false;
-        clearInterval(timerInterval.value);
+        // Le cleanup sera fait dans onstop
       }
     };
 
     onUnmounted(() => {
-      if (timerInterval.value) clearInterval(timerInterval.value);
+      cleanup();
     });
 
     return () => h('div', { class: "flex flex-col items-center gap-4 p-6 bg-primary/5 rounded-[32px] border border-primary/10" }, [
       h('div', { class: "flex items-center gap-4" }, [
         isRecording.value ? h('div', { class: "flex items-center gap-2" }, [
           h('div', { class: "w-3 h-3 bg-primary rounded-full animate-ping" }),
-          h('span', { class: "text-lg font-black font-mono" }, 
+          h('span', { class: "text-lg font-black font-mono text-primary" },
             `${Math.floor(duration.value / 60)}:${(duration.value % 60).toString().padStart(2, '0')}`
           )
-        ]) : h('p', { class: "text-xs font-bold opacity-50 uppercase tracking-widest" }, "Appuie pour enregistrer")
+        ]) : h('p', { class: "text-xs font-bold opacity-50 uppercase tracking-widest text-slate-500 dark:text-slate-400" }, "Appuie pour enregistrer")
       ]),
-      
+
       h('button', {
         onMousedown: startRecording,
         onMouseup: stopRecording,
+        onMouseleave: stopRecording,
         onTouchstart: startRecording,
         onTouchend: stopRecording,
         class: `w-20 h-20 rounded-full flex items-center justify-center transition-all ${isRecording.value ? 'bg-primary scale-110 shadow-[0_0_40px_rgba(238,43,43,0.5)]' : 'bg-slate-200 dark:bg-white/10 text-slate-400'}`
@@ -77,7 +101,7 @@ export default defineComponent({
         h('span', { class: "material-icons-round text-4xl text-white" }, isRecording.value ? 'mic' : 'mic_none')
       ]),
 
-      h('p', { class: "text-[10px] font-black uppercase tracking-widest text-primary opacity-60" }, 
+      h('p', { class: "text-[10px] font-black uppercase tracking-widest text-primary opacity-60" },
         isRecording.value ? "Relâche pour terminer" : "Maintenir pour parler"
       )
     ]);

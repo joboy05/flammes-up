@@ -1,11 +1,24 @@
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, ref, onMounted } from 'vue';
 
 export default defineComponent({
   name: 'ProfileView',
   props: { user: Object, isDarkMode: Boolean },
   emits: ['edit', 'logout'],
   setup(props, { emit }) {
+    const friendCount = ref(0);
     const defaultAvatar = '/assets/default-avatar.svg';
+
+    onMounted(async () => {
+      try {
+        const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/friends/count', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('up_token')}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          friendCount.value = data.count;
+        }
+      } catch (e) { }
+    });
 
     return () => h('div', { class: "flex flex-col min-h-full pb-10" }, [
       h('div', { class: "p-8 space-y-10" }, [
@@ -35,12 +48,25 @@ export default defineComponent({
         ]),
 
         h('div', { class: "grid grid-cols-2 gap-4" }, [
-          h('div', { class: "bg-white dark:bg-white/5 p-6 rounded-[35px] border border-slate-100 dark:border-white/5 text-center shadow-sm" }, [
+          h('div', {
+            onClick: () => window.alert("Les Vibes sont gagnées quand les autres 'enflamment' (likent) vos posts et confessions. Plus vous avez de vibes, plus vous montez dans le classement ! 🔥"),
+            class: "bg-white dark:bg-white/5 p-6 rounded-[35px] border border-slate-100 dark:border-white/5 text-center shadow-sm cursor-help active:scale-95 transition-all"
+          }, [
             h('p', { class: "text-3xl font-black text-primary tracking-tighter" }, props.user.vibesReceived || 0),
             h('p', { class: "text-[10px] font-black uppercase tracking-widest opacity-40 mt-1" }, 'Vibes Reçues')
           ]),
-          h('div', { class: "bg-white dark:bg-white/5 p-6 rounded-[35px] border border-slate-100 dark:border-white/5 text-center shadow-sm" }, [
-            h('p', { class: "text-3xl font-black tracking-tighter" }, props.user.upPoints || 0),
+          h('div', {
+            onClick: () => (window as any).dispatchEvent(new CustomEvent('nav', { detail: 'friends' })),
+            class: "bg-white dark:bg-white/5 p-6 rounded-[35px] border border-slate-100 dark:border-white/5 text-center shadow-sm cursor-pointer active:scale-95 transition-all"
+          }, [
+            h('p', { class: "text-3xl font-black tracking-tighter text-indigo-500" }, friendCount.value || 0),
+            h('p', { class: "text-[10px] font-black uppercase tracking-widest opacity-40 mt-1" }, 'Amis')
+          ]),
+          h('div', {
+            onClick: () => window.alert("Les Points UP sont gagnés en publiant des posts (+5 pts) ou des stories (+10 pts). Ils vous permettent de débloquer des fonctionnalités premium bientôt ! ✨"),
+            class: "bg-white dark:bg-white/5 p-6 rounded-[35px] border border-slate-100 dark:border-white/5 text-center shadow-sm cursor-help active:scale-95 transition-all"
+          }, [
+            h('p', { class: "text-3xl font-black tracking-tighter text-slate-900 dark:text-white" }, props.user.upPoints || 0),
             h('p', { class: "text-[10px] font-black uppercase tracking-widest opacity-40 mt-1" }, 'Points UP')
           ])
         ]),

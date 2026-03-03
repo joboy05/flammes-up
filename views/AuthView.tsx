@@ -18,12 +18,14 @@ export default defineComponent({
 
     const faculties = [
       'FLASH (Lettres & Arts)',
-      'FDSP (Droit & Sc. Po)',
+      'FADESP (Droit & Sc. Po)',
       'FASEG (Eco & Gestion)',
-      'FSS (Santé)',
       'IUT',
-      'AGRO',
-      'FAST'
+      'FM (Médecine)',
+      'IFSIO (Soins Infirmiers)',
+      'AGRO (Agronomie)',
+      'ENSPD (Statistiques)',
+      'EPIDÉMIO (Épidémiologie)'
     ];
 
     const levels = ['Licence 1', 'Licence 2', 'Licence 3', 'Master 1', 'Master 2', 'Doctorat'];
