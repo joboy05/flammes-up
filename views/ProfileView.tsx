@@ -43,7 +43,7 @@ export default defineComponent({
           h('p', { class: "text-slate-500 dark:text-slate-400 font-medium text-sm mt-2 px-6 italic" }, props.user.bio || "Aucune bio définie."),
           h('div', { class: "mt-4 bg-primary/10 px-5 py-2 rounded-full flex items-center gap-2 border border-primary/20 mx-auto w-fit" }, [
             h('span', { class: "material-icons-round text-primary text-base" }, 'verified'),
-            h('span', { class: "text-[10px] font-black uppercase text-primary tracking-[0.2em]" }, 'Étudiant Parakou')
+            h('span', { class: "text-[10px] font-black uppercase text-primary tracking-[0.2em]" }, props.user.faculty === 'Autre Université' ? 'Invité Campus' : 'Étudiant Parakou')
           ])
         ]),
 

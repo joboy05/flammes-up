@@ -194,7 +194,7 @@ export default defineComponent({
               h('label', { class: "text-[10px] font-black uppercase tracking-widest opacity-40 ml-4" }, 'Filière'),
               h('input', {
                 value: form.value.faculty,
-                onInput: (e: any) => form.value.faculty = e.target.value,
+                placeholder: "Ex: FLASH, FADESP ou Autre Université",
                 class: "w-full bg-slate-100 dark:bg-white/5 border-none rounded-[24px] p-5 font-bold focus:ring-1 focus:ring-primary/30 dark:text-white outline-none"
               })
             ]),

@@ -25,7 +25,8 @@ export default defineComponent({
       'IFSIO (Soins Infirmiers)',
       'AGRO (Agronomie)',
       'ENSPD (Statistiques)',
-      'EPIDÉMIO (Épidémiologie)'
+      'EPIDÉMIO (Épidémiologie)',
+      'Autre Université'
     ];
 
     const levels = ['Licence 1', 'Licence 2', 'Licence 3', 'Master 1', 'Master 2', 'Doctorat'];
