@@ -69,7 +69,8 @@ export default defineComponent({
       upPoints: 0,
       hasStory: false,
       isProfileComplete: false,
-      role: 'user'
+      role: 'user',
+      email: ''
     };
 
     if (savedProfile) {
