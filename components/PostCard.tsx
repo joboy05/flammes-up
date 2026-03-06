@@ -122,41 +122,53 @@ export default defineComponent({
           h('span', { class: "material-icons-round text-2xl" }, 'chat_bubble_outline'),
           h('span', { class: "text-xs font-black" }, comments.value.length)
         ]),
-        h('button', {
-          class: "flex items-center gap-2 text-slate-400 ml-auto active:scale-110 active:text-primary transition-all",
-          onClick: async (e: Event) => {
-            e.stopPropagation();
-            const shareText = `🔥 Flammes UP - ${props.post.author} :\n"${props.post.content}"\n\nRejoins-nous sur ${window.location.origin}`;
+        h('div', { class: "flex items-center gap-3 ml-auto" }, [
+          h('button', {
+            class: "flex items-center gap-2 text-emerald-500 active:scale-110 transition-all",
+            onClick: (e: Event) => {
+              e.stopPropagation();
+              const shareText = `🔥 Flammes UP - ${props.post.author} :\n"${props.post.content}"\n\nRejoins-nous sur ${window.location.origin}`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+            }
+          }, [
+            h('span', { class: "material-icons-round text-2xl" }, 'whatsapp')
+          ]),
+          h('button', {
+            class: "flex items-center gap-2 text-slate-400 active:scale-110 active:text-primary transition-all",
+            onClick: async (e: Event) => {
+              e.stopPropagation();
+              const shareText = `🔥 Flammes UP - ${props.post.author} :\n"${props.post.content}"\n\nRejoins-nous sur ${window.location.origin}`;
 
-            if (navigator.share) {
-              try {
-                await navigator.share({
-                  title: 'Flammes UP - ' + props.post.author,
-                  text: props.post.content,
-                  url: window.location.origin,
-                });
-              } catch (err: any) {
-                if (err.name !== 'AbortError') {
-                  console.error('Share failed', err);
-                  try {
-                    await navigator.clipboard.writeText(shareText);
-                    import('../services/toast').then(m => m.toast.success('Lien et contenu copiés ! ✨'));
-                  } catch (e) {
-                    import('../services/toast').then(m => m.toast.error('Erreur lors du partage'));
+              if (navigator.share) {
+                try {
+                  await navigator.share({
+                    title: 'Flammes UP - ' + props.post.author,
+                    text: props.post.content,
+                    url: window.location.origin,
+                  });
+                } catch (err: any) {
+                  if (err.name !== 'AbortError') {
+                    console.error('Share failed', err);
+                    try {
+                      await navigator.clipboard.writeText(shareText);
+                      import('../services/toast').then(m => m.toast.success('Lien et contenu copiés ! ✨'));
+                    } catch (e) {
+                      import('../services/toast').then(m => m.toast.error('Erreur lors du partage'));
+                    }
                   }
                 }
-              }
-            } else {
-              try {
-                await navigator.clipboard.writeText(shareText);
-                import('../services/toast').then(m => m.toast.success('Lien et contenu copiés ! ✨'));
-              } catch (err) {
-                import('../services/toast').then(m => m.toast.error('Erreur lors de la copie'));
+              } else {
+                try {
+                  await navigator.clipboard.writeText(shareText);
+                  import('../services/toast').then(m => m.toast.success('Lien et contenu copiés ! ✨'));
+                } catch (err) {
+                  import('../services/toast').then(m => m.toast.error('Erreur lors de la copie'));
+                }
               }
             }
-          }
-        }, [
-          h('span', { class: "material-icons-round text-2xl" }, 'ios_share')
+          }, [
+            h('span', { class: "material-icons-round text-2xl" }, 'ios_share')
+          ])
         ])
       ]),
 

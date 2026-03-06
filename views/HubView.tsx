@@ -125,9 +125,26 @@ export default defineComponent({
               ]),
               h('div', { class: "text-left" }, [
                 h('p', { class: "font-black text-sm text-primary" }, "Partager l'App"),
-                h('p', { class: "text-[10px] opacity-60" }, "Invite tes amis sur le campus")
+                h('p', { class: "text-[10px] opacity-60" }, "Invite tes amis via le système")
               ]),
               h('span', { class: "material-icons-round ml-auto text-primary/30" }, 'send')
+            ]),
+
+            h('button', {
+              onClick: () => {
+                const text = "Rejoins-moi sur Flammes UP - Le réseau social de l'Université de Parakou ! 🔥 " + window.location.origin;
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+              },
+              class: "w-full bg-emerald-500/10 border border-emerald-500/20 p-5 rounded-[28px] flex items-center gap-4 active:scale-[0.98] transition-all mt-3"
+            }, [
+              h('div', { class: "w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg" }, [
+                h('span', { class: "material-icons-round" }, 'whatsapp')
+              ]),
+              h('div', { class: "text-left" }, [
+                h('p', { class: "font-black text-sm text-emerald-600" }, "Partager sur WhatsApp"),
+                h('p', { class: "text-[10px] opacity-60" }, "Envoie une invitation directe")
+              ]),
+              h('span', { class: "material-icons-round ml-auto text-emerald-500/30" }, 'chat')
             ])
           ]),
 
