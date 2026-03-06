@@ -44,6 +44,8 @@ import { Motion } from '@motionone/vue';
 import { api } from './services/api';
 import { ws } from './services/socket';
 import { toast } from './services/toast';
+import { auth } from './services/firebase';
+import { getRedirectResult } from 'firebase/auth';
 
 export default defineComponent({
   name: 'App',
@@ -194,6 +196,19 @@ export default defineComponent({
       });
 
       setupPush();
+
+      // Gestion du retour d'authentification par redirection (Google)
+      getRedirectResult(auth).then(async (result) => {
+        if (result?.user) {
+          const idToken = await result.user.getIdToken();
+          handleGoogleLogin(idToken);
+        }
+      }).catch(err => {
+        if (err.code !== 'auth/unauthorized-domain') {
+          console.error("Redirect Auth Error:", err);
+          toast.error("Erreur d'authentification : " + err.message);
+        }
+      });
 
       // Force hide preloader after mount
       hidePreloader();
