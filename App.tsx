@@ -114,6 +114,9 @@ export default defineComponent({
 
       // Si déjà authentifié (token JWT valide), récupérer le profil depuis le backend
       if (isAuthenticated.value) {
+        // Ajout du toast de synchronisation en arrière-plan comme sur WhatsApp
+        toast.info("Synchronisation des messages en arrière-plan...");
+
         try {
           const data = await api.getMe();
           if (data.user) {

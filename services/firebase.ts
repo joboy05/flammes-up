@@ -14,6 +14,8 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+console.log("🔥 Firebase Config API Key:", firebaseConfig.apiKey ? "Présente (commence par " + firebaseConfig.apiKey.substring(0, 5) + "...)" : "VIDE !");
+
 const app = initializeApp(firebaseConfig);
 export const db_firebase = getFirestore(app);
 export const auth = getAuth(app);

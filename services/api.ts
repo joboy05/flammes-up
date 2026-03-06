@@ -302,6 +302,6 @@ export const api = {
     },
 
     async getConfigServices() {
-        return request('/general/config/services');
+        return request('/config/services');
     }
 };
