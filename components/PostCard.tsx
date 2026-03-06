@@ -135,8 +135,16 @@ export default defineComponent({
                   text: props.post.content,
                   url: window.location.origin,
                 });
-              } catch (err) {
-                console.log('Share canceled', err);
+              } catch (err: any) {
+                if (err.name !== 'AbortError') {
+                  console.error('Share failed', err);
+                  try {
+                    await navigator.clipboard.writeText(shareText);
+                    import('../services/toast').then(m => m.toast.success('Lien et contenu copiés ! ✨'));
+                  } catch (e) {
+                    import('../services/toast').then(m => m.toast.error('Erreur lors du partage'));
+                  }
+                }
               }
             } else {
               try {

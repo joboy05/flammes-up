@@ -177,7 +177,7 @@ export default defineComponent({
           ]),
           h('div', { class: "flex items-center gap-3" }, [
             h('img', {
-              src: otherUserAvatar.value || `assets/avatar-${(parseInt(props.convId || '1') % 2) + 1}.svg`,
+              src: otherUserAvatar.value || `/assets/avatar-${(parseInt(props.convId || '1') % 2) + 1}.svg`,
               class: "w-10 h-10 rounded-full object-cover border-2 border-primary/20 bg-slate-100"
             }),
             h('div', [
