@@ -1,6 +1,6 @@
 import { defineComponent, ref, h } from 'vue';
 import { auth, googleProvider } from '../services/firebase';
-import { signInWithPopup, signInWithRedirect } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth';
 import { toast } from '../services/toast';
 
 export default defineComponent({
@@ -21,7 +21,7 @@ export default defineComponent({
       'FADESP (Droit & Sc. Po)',
       'FASEG (Eco & Gestion)',
       'IUT',
-      'FM (Médecine)',
+      'FM (Santé)',
       'IFSIO (Soins Infirmiers)',
       'AGRO (Agronomie)',
       'ENSPD (Statistiques)',
