@@ -21,7 +21,7 @@ export default defineComponent({
       'FADESP (Droit & Sc. Po)',
       'FASEG (Eco & Gestion)',
       'IUT',
-      'FM (Santé)',
+      'FM (Médecine)',
       'IFSIO (Soins Infirmiers)',
       'AGRO (Agronomie)',
       'ENSPD (Statistiques)',
@@ -60,25 +60,17 @@ export default defineComponent({
     };
 
     const handleGoogleSignIn = async () => {
-      // Pour éviter les blocages de navigateurs (Safari, Brave, Firefox, Chrome Mobile)
-      // on privilégie le redirect en production ou si mobile
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
       try {
-        if (!isLocal) {
-          toast.info("Redirection vers Google...");
-          await signInWithRedirect(auth, googleProvider);
-          return;
-        }
-
+        // Pour être considéré comme une action utilisateur directe (évite blocage popup)
         const result = await signInWithPopup(auth, googleProvider);
+
         isLoading.value = true;
         const idToken = await result.user.getIdToken();
         emit('google-login', idToken);
       } catch (err: any) {
         console.error("Google Auth Error:", err);
         if (err.code === 'auth/popup-blocked') {
-          toast.error("Le popup d'authentification a été bloqué. Veuillez autoriser les popups ou passer en mode normal.");
+          toast.error("Le popup a été bloqué par le navigateur.");
         } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
           toast.error("Erreur Google Auth: " + (err.message || err.code));
         }
