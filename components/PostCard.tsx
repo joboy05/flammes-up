@@ -124,19 +124,27 @@ export default defineComponent({
         ]),
         h('button', {
           class: "flex items-center gap-2 text-slate-400 ml-auto active:scale-110 active:text-primary transition-all",
-          onClick: async () => {
+          onClick: async (e: Event) => {
+            e.stopPropagation();
+            const shareText = `🔥 Flammes UP - ${props.post.author} :\n"${props.post.content}"\n\nRejoins-nous sur ${window.location.origin}`;
+
             if (navigator.share) {
               try {
                 await navigator.share({
                   title: 'Flammes UP - ' + props.post.author,
                   text: props.post.content,
-                  url: window.location.href,
+                  url: window.location.origin,
                 });
               } catch (err) {
                 console.log('Share canceled', err);
               }
             } else {
-              import('../services/toast').then(m => m.toast.success('Lien copié !'));
+              try {
+                await navigator.clipboard.writeText(shareText);
+                import('../services/toast').then(m => m.toast.success('Lien et contenu copiés ! ✨'));
+              } catch (err) {
+                import('../services/toast').then(m => m.toast.error('Erreur lors de la copie'));
+              }
             }
           }
         }, [
