@@ -1,9 +1,14 @@
 
 import { toast } from './toast';
 
-export const API_BASE = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+let base = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:5000/api'
     : 'https://flammes-up-back.onrender.com/api');
+
+if (base.endsWith('/')) base = base.slice(0, -1);
+if (!base.endsWith('/api')) base += '/api';
+
+export const API_BASE = base;
 
 function getToken(): string | null {
     return localStorage.getItem('up_token');
