@@ -14,16 +14,12 @@ export default defineComponent({
             isLoading.value = true;
             try {
                 const [friendsRes, requestsRes] = await Promise.all([
-                    fetch((import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/friends/list', {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('up_token')}` }
-                    }),
-                    fetch((import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/friends/requests', {
-                        headers: { 'Authorization': `Bearer ${localStorage.getItem('up_token')}` }
-                    })
+                    api.request('/friends/list'),
+                    api.request('/friends/requests')
                 ]);
 
-                if (friendsRes.ok) friends.value = await friendsRes.json();
-                if (requestsRes.ok) requests.value = await requestsRes.json();
+                friends.value = friendsRes.friends || [];
+                requests.value = requestsRes.requests || [];
             } catch (e) {
                 console.error("Erreur chargement amis:", e);
             } finally {
@@ -33,12 +29,8 @@ export default defineComponent({
 
         const acceptRequest = async (requestId: string) => {
             try {
-                const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/friends/accept', {
+                const res = await api.request('/friends/accept', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('up_token')}`
-                    },
                     body: JSON.stringify({ requestId })
                 });
                 if (res.ok) {

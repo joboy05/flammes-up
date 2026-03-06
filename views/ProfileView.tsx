@@ -1,4 +1,5 @@
 import { defineComponent, h, ref, onMounted } from 'vue';
+import { api } from '../services/api';
 
 export default defineComponent({
   name: 'ProfileView',
@@ -10,13 +11,11 @@ export default defineComponent({
 
     onMounted(async () => {
       try {
-        const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/friends/count', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('up_token')}` }
+        const res = await api.request('/friends/count', {
+          method: 'POST',
+          body: JSON.stringify({ phone: props.user.phone })
         });
-        if (res.ok) {
-          const data = await res.json();
-          friendCount.value = data.count;
-        }
+        friendCount.value = res.count || 0;
       } catch (e) { }
     });
 

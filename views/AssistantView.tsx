@@ -1,5 +1,6 @@
 import { defineComponent, ref, h, nextTick, onMounted, onUnmounted } from 'vue';
 import anime from 'animejs';
+import { api, API_BASE } from '../services/api';
 
 export default defineComponent({
   name: 'ChatUPView',
@@ -28,7 +29,8 @@ export default defineComponent({
     onMounted(async () => {
       await scrollToBottom();
       try {
-        const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/ai/history/' + userId;
+        const base = API_BASE.replace('/api', '');
+        const url = base + '/api/ai/history/' + userId;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
@@ -148,7 +150,8 @@ export default defineComponent({
             if (confirm("Effacer la mémoire de ChatUP ?")) {
               messages.value = [{ role: 'model', text: "Wopé ! Mémoire effacée. Quoi de neuf le boss ?" }];
               try {
-                const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/ai/chat';
+                const base = API_BASE.replace('/api', '');
+                const url = base + '/api/ai/chat';
                 await fetch(url, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },

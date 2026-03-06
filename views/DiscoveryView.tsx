@@ -87,17 +87,15 @@ export default defineComponent({
                         h('button', {
                             onClick: async () => {
                                 try {
-                                    const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/friends/request', {
+                                    const res = await api.request('/friends/request', {
                                         method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${localStorage.getItem('up_token')}`
-                                        },
-                                        body: JSON.stringify({ targetPhone: user.phone })
+                                        body: JSON.stringify({ to: user.phone })
                                     });
-                                    const data = await res.json();
-                                    if (res.ok) toast.success("Demande d'ami envoyée ! 🔥");
-                                    else toast.error(data.error || "Erreur");
+                                    if (res.status === 'success' || (res.ok !== false && !res.error)) {
+                                        toast.success("Demande d'ami envoyée ! 🔥");
+                                    } else {
+                                        toast.error(res.error || "Erreur");
+                                    }
                                 } catch (e) {
                                     toast.error("Erreur serveur");
                                 }

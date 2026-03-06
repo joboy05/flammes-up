@@ -1,6 +1,7 @@
 
 import { defineComponent, ref, h, onMounted } from 'vue';
 import { formatRelativeDate } from '../services/dates';
+import { api } from '../services/api';
 
 export default defineComponent({
   name: 'NotificationsView',
@@ -14,11 +15,8 @@ export default defineComponent({
     const fetchNotifications = async () => {
       if (!currentUserId) return;
       try {
-        const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId;
-        const res = await fetch(url);
-        if (res.ok) {
-          notifications.value = await res.json();
-        }
+        const res = await api.request(`/notifications/${currentUserId}`);
+        notifications.value = res.notifications || [];
       } catch (e) {
         console.error("Erreur chargement notifications:", e);
       } finally {
@@ -32,8 +30,7 @@ export default defineComponent({
       notifications.value = notifications.value.map(n => ({ ...n, unread: false }));
       if (currentUserId) {
         try {
-          const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId + '/read-all';
-          await fetch(url, { method: 'PATCH' });
+          await api.request(`/notifications/${currentUserId}/read-all`, { method: 'PATCH' });
         } catch (e) { }
       }
     };
@@ -72,8 +69,7 @@ export default defineComponent({
                 i.unread = false;
                 if (currentUserId && i.id) {
                   try {
-                    const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/notifications/' + currentUserId + '/read/' + i.id;
-                    await fetch(url, { method: 'PATCH' });
+                    await api.request(`/notifications/${currentUserId}/read/${i.id}`, { method: 'PATCH' });
                   } catch (e) { }
                 }
               }
