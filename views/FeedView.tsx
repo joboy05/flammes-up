@@ -7,6 +7,7 @@ import { ws } from '../services/socket';
 import { toast } from '../services/toast';
 import { formatRelativeDate } from '../services/dates';
 import { Post, Story } from '../types';
+import Skeleton from '../components/Skeleton';
 
 export default defineComponent({
   name: 'FeedView',
@@ -199,19 +200,24 @@ export default defineComponent({
       postingTab.value = 'text';
     };
 
-    const PostSkeleton = () => h('div', { class: "bg-white dark:bg-[#1a1d23] border border-slate-100 dark:border-white/5 rounded-[32px] p-5 shadow-sm mb-4 animate-pulse" }, [
+    const PostSkeleton = () => h('div', { class: "bg-white dark:bg-[#1a1d23] border border-slate-100 dark:border-white/5 rounded-[32px] p-5 shadow-sm mb-4" }, [
       h('div', { class: "flex items-center gap-3 mb-4" }, [
-        h('div', { class: "w-11 h-11 rounded-full bg-slate-200 dark:bg-white/5" }),
+        h(Skeleton, { width: '2.75rem', height: '2.75rem', borderRadius: '9999px' }),
         h('div', { class: "flex-1 space-y-2" }, [
-          h('div', { class: "h-3 bg-slate-200 dark:bg-white/5 rounded w-24" }),
-          h('div', { class: "h-2 bg-slate-100 dark:bg-white/5 rounded w-16" })
+          h(Skeleton, { width: '6rem', height: '0.75rem' }),
+          h(Skeleton, { width: '4rem', height: '0.5rem' })
         ])
       ]),
       h('div', { class: "space-y-3 mb-4" }, [
-        h('div', { class: "h-3 bg-slate-100 dark:bg-white/5 rounded w-full" }),
-        h('div', { class: "h-3 bg-slate-100 dark:bg-white/5 rounded w-5/6" })
+        h(Skeleton, { width: '100%', height: '0.75rem' }),
+        h(Skeleton, { width: '85%', height: '0.75rem' })
       ]),
-      h('div', { class: "h-10 bg-slate-50 dark:bg-white/5 rounded-2xl w-full" })
+      h(Skeleton, { width: '100%', height: '2.5rem', borderRadius: '1rem' })
+    ]);
+
+    const StorySkeleton = () => h('div', { class: "flex flex-col items-center gap-2 shrink-0" }, [
+      h(Skeleton, { width: '4rem', height: '4rem', borderRadius: '22px' }),
+      h(Skeleton, { width: '3rem', height: '0.5rem', borderRadius: '4px' })
     ]);
 
     return () => h('div', {
@@ -234,7 +240,11 @@ export default defineComponent({
           h('span', { class: "text-[10px] font-black uppercase tracking-widest text-primary" }, 'Ma Story')
         ]),
 
-        stories.value.map(s => h('button', {
+        stories.value.length === 0 && isLoadingPosts.value ? [
+          StorySkeleton(),
+          StorySkeleton(),
+          StorySkeleton()
+        ] : stories.value.map(s => h('button', {
           key: s.id,
           onClick: () => selectedStory.value = s,
           class: "flex flex-col items-center gap-2 shrink-0 group"

@@ -21,8 +21,8 @@ export default defineComponent({
     const isMenuOpen = ref(false);
     const isRecording = ref(false);
     const myPhone = ref('');
-    const otherUserName = ref('Interlocuteur UP');
-    const otherUserAvatar = ref('');
+    const otherUserName = ref((window as any)._activeConvName || 'Interlocuteur UP');
+    const otherUserAvatar = ref((window as any)._activeConvAvatar || '');
 
     onMounted(async () => {
       const currentUser = db.getProfile();

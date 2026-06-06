@@ -2,6 +2,7 @@ import { defineComponent, ref, onMounted, computed, h } from 'vue';
 import { api } from '../services/api';
 import { UserProfile } from '../types';
 import { toast } from '../services/toast';
+import Skeleton from '../components/Skeleton';
 
 declare interface ImportMeta {
     readonly env: any;
@@ -36,6 +37,20 @@ export default defineComponent({
             );
         });
 
+        const UserSkeleton = () => h('div', {
+            class: "bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 p-4 rounded-[28px] flex items-center gap-4 shadow-sm mb-4"
+        }, [
+            h(Skeleton, { width: '3.5rem', height: '3.5rem', borderRadius: '9999px' }),
+            h('div', { class: "flex-1 space-y-2" }, [
+                h(Skeleton, { width: '8rem', height: '0.75rem' }),
+                h(Skeleton, { width: '5rem', height: '0.4rem' })
+            ]),
+            h('div', { class: "flex gap-2" }, [
+                h(Skeleton, { width: '2rem', height: '2rem', borderRadius: '9999px' }),
+                h(Skeleton, { width: '2rem', height: '2rem', borderRadius: '9999px' })
+            ])
+        ]);
+
         return () => h('div', { class: "min-h-full bg-white dark:bg-[#0f1115] flex flex-col" }, [
             // Header
             h('header', { class: "px-6 py-12 bg-accent rounded-b-[40px] text-white shadow-2xl relative overflow-hidden" }, [
@@ -62,10 +77,13 @@ export default defineComponent({
 
             // Users List
             h('div', { class: "flex-1 p-6 space-y-4 overflow-y-auto no-scrollbar pb-24" }, [
-                isLoading.value ? h('div', { class: "flex flex-col items-center justify-center py-20 opacity-40" }, [
-                    h('span', { class: "material-icons-round animate-spin text-4xl mb-4" }, 'refresh'),
-                    h('p', { class: "font-bold text-xs uppercase tracking-widest" }, "Chargement des étudiants...")
-                ]) : (filteredUsers.value.length > 0 ? filteredUsers.value.map(user => h('div', {
+                isLoading.value ? [
+                    UserSkeleton(),
+                    UserSkeleton(),
+                    UserSkeleton(),
+                    UserSkeleton(),
+                    UserSkeleton()
+                ] : (filteredUsers.value.length > 0 ? filteredUsers.value.map(user => h('div', {
                     key: user.phone,
                     class: "bg-white dark:bg-primary/5 border border-primary/10 p-4 rounded-[28px] flex items-center gap-4 shadow-sm"
                 }, [

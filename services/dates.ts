@@ -15,6 +15,13 @@ export function formatRelativeDate(dateInput: string | Date | any, compact = fal
     } else if (dateInput?.seconds) {
         // Raw Firestore timestamp
         date = new Date(dateInput.seconds * 1000);
+    } else if (typeof dateInput === 'number') {
+        // Numeric timestamp (ms or seconds)
+        if (dateInput < 10000000000) {
+            date = new Date(dateInput * 1000); // Likely seconds
+        } else {
+            date = new Date(dateInput); // Likely ms
+        }
     } else {
         return '';
     }

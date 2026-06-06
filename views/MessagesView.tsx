@@ -2,6 +2,7 @@ import { defineComponent, h, ref, onMounted, onUnmounted } from 'vue';
 import { api } from '../services/api';
 import { ws } from '../services/socket';
 import { formatRelativeDate } from '../services/dates';
+import Skeleton from '../components/Skeleton';
 
 export default defineComponent({
   name: 'MessagesView',
@@ -30,14 +31,14 @@ export default defineComponent({
       ws.off('conversations-updated', loadConversations);
     });
 
-    const ConvSkeleton = () => h('div', { class: "flex items-center gap-4 py-4 animate-pulse" }, [
-      h('div', { class: "w-14 h-14 rounded-full bg-primary/5 dark:bg-white/5" }),
+    const ConvSkeleton = () => h('div', { class: "flex items-center gap-4 py-4" }, [
+      h(Skeleton, { width: '3.5rem', height: '3.5rem', borderRadius: '9999px' }),
       h('div', { class: "flex-1 space-y-2" }, [
         h('div', { class: "flex justify-between items-baseline" }, [
-          h('div', { class: "h-3 bg-primary/5 dark:bg-white/10 rounded w-28" }),
-          h('div', { class: "h-2 bg-primary/5 dark:bg-white/10 rounded w-10" })
+          h(Skeleton, { width: '7rem', height: '0.75rem' }),
+          h(Skeleton, { width: '2rem', height: '0.5rem' })
         ]),
-        h('div', { class: "h-3 bg-primary/5 dark:bg-white/5 rounded w-full" })
+        h(Skeleton, { width: '100%', height: '0.6rem' })
       ])
     ]);
 
@@ -78,7 +79,7 @@ export default defineComponent({
         ] : (
           conversations.value.length > 0 ? conversations.value.map(c => h('div', {
             key: c.id,
-            onClick: () => emit('openChat', c.id),
+            onClick: () => emit('openChat', c.id, c.name, c.avatar),
             class: "flex items-center gap-4 py-4 active:bg-primary/5 transition-colors cursor-pointer"
           }, [
             h('div', { class: "relative shrink-0" }, [

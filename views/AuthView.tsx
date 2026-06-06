@@ -41,6 +41,8 @@ export default defineComponent({
       if (!isLoginMode.value && !name.value) return;
 
       isLoading.value = true;
+      toast.info("Connexion en cours... Si le serveur était en veille, cela peut prendre jusqu'à 50 secondes.");
+      
       try {
         if (isLoginMode.value) {
           emit('login', { phone: phoneNumber.value, password: password.value });
@@ -54,8 +56,8 @@ export default defineComponent({
           });
         }
       } finally {
-        // Le loading sera reset quand App.tsx redirige
-        setTimeout(() => { isLoading.value = false; }, 3000);
+        // Le backend Render peut prendre jusqu'à 50s pour se réveiller
+        setTimeout(() => { isLoading.value = false; }, 45000);
       }
     };
 
@@ -65,8 +67,12 @@ export default defineComponent({
         const result = await signInWithPopup(auth, googleProvider);
 
         isLoading.value = true;
+        toast.info("Auth Google réussie. Réveil du serveur en cours (jusqu'à 50s)...");
         const idToken = await result.user.getIdToken();
         emit('google-login', idToken);
+        
+        // Reset après 45s si échec silencieux
+        setTimeout(() => { isLoading.value = false; }, 45000);
       } catch (err: any) {
         console.error("Google Auth Error:", err);
         if (err.code === 'auth/popup-blocked') {

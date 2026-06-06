@@ -52,7 +52,7 @@ export default defineComponent({
   setup() {
     const activeTab = ref('feed');
     const isAuthenticated = ref(api.isLoggedIn());
-    const isDarkMode = ref(true);
+    const isDarkMode = ref(localStorage.getItem('up_theme') === 'dark');
     const isEcoMode = ref(false);
     const activeBubbles = ref<ChatBubble[]>([]);
     const isDrawerOpen = ref(false);
@@ -103,7 +103,11 @@ export default defineComponent({
     };
 
     onMounted(async () => {
-      document.documentElement.classList.add('dark');
+      if (isDarkMode.value) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
 
       window.addEventListener('nav', (e: any) => {
         activeTab.value = (e as any).detail;
@@ -297,8 +301,13 @@ export default defineComponent({
 
     const toggleTheme = () => {
       isDarkMode.value = !isDarkMode.value;
-      if (isDarkMode.value) document.documentElement.classList.add('dark');
-      else document.documentElement.classList.remove('dark');
+      if (isDarkMode.value) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('up_theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('up_theme', 'light');
+      }
     };
 
     const fullScreenViews = ['auth', 'facematch', 'chat_detail', 'assistant', 'crush', 'legal', 'discovery'];
@@ -328,8 +337,10 @@ export default defineComponent({
         case 'marketplace': return h(MarketplaceView, { isEcoMode: isEcoMode.value });
         case 'confessions': return h(ConfessionsView);
         case 'messages': return h(MessagesView, {
-          onOpenChat: (id: string) => {
+          onOpenChat: (id: string, name: string, avatar: string) => {
             (window as any)._activeConvId = id;
+            (window as any)._activeConvName = name;
+            (window as any)._activeConvAvatar = avatar;
             activeTab.value = 'chat_detail';
           },
           onOpenDiscovery: () => activeTab.value = 'discovery'
@@ -367,6 +378,8 @@ export default defineComponent({
             const convId = [myId, otherId].sort().join('-');
             activeTab.value = 'chat_detail';
             (window as any)._activeConvId = convId;
+            (window as any)._activeConvName = name;
+            (window as any)._activeConvAvatar = avatar;
 
             if (!activeBubbles.value.find(b => b.id === convId)) {
               activeBubbles.value.push({
@@ -390,6 +403,8 @@ export default defineComponent({
             const convId = [myId, otherId].sort().join('-');
             activeTab.value = 'chat_detail';
             (window as any)._activeConvId = convId;
+            (window as any)._activeConvName = name;
+            (window as any)._activeConvAvatar = avatar;
 
             if (!activeBubbles.value.find(b => b.id === convId)) {
               activeBubbles.value.push({

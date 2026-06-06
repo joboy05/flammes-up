@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { Confession } from '../services/db';
 import { toast } from '../services/toast';
 import { formatRelativeDate } from '../services/dates';
+import Skeleton from '../components/Skeleton';
 
 export default defineComponent({
   name: 'ConfessionsView',
@@ -24,6 +25,23 @@ export default defineComponent({
         isLoading.value = false;
       }
     };
+
+    const ConfessionSkeleton = () => h('div', { class: "bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-[30px] p-6 shadow-sm mb-4" }, [
+      h(Skeleton, { width: '4rem', height: '0.5rem', class: 'mb-1' }),
+      h(Skeleton, { width: '6rem', height: '0.4rem', class: 'mb-3' }),
+      h('div', { class: "space-y-2 mb-4" }, [
+        h(Skeleton, { width: '100%', height: '0.6rem' }),
+        h(Skeleton, { width: '90%', height: '0.6rem' }),
+        h(Skeleton, { width: '40%', height: '0.6rem' })
+      ]),
+      h('div', { class: "flex items-center justify-between border-t border-slate-50 dark:border-white/5 pt-4" }, [
+        h('div', { class: "flex gap-4" }, [
+          h(Skeleton, { width: '3rem', height: '1rem', borderRadius: '4px' }),
+          h(Skeleton, { width: '3rem', height: '1rem', borderRadius: '4px' })
+        ]),
+        h(Skeleton, { width: '5rem', height: '1.5rem', borderRadius: '9999px' })
+      ])
+    ]);
 
     onMounted(loadConfessions);
 
@@ -99,8 +117,15 @@ export default defineComponent({
       ]),
 
       h('div', { class: "p-4 space-y-4 pb-28" }, [
+        isLoading.value ? [
+          ConfessionSkeleton(),
+          ConfessionSkeleton(),
+          ConfessionSkeleton(),
+          ConfessionSkeleton()
+        ] : null,
+
         // Confession de la Semaine
-        confessions.value.length > 0 ? h('div', {
+        !isLoading.value && confessions.value.length > 0 ? h('div', {
           class: "bg-gradient-to-br from-primary to-rose-600 p-6 rounded-[32px] shadow-xl shadow-primary/20 text-white mb-8 relative overflow-hidden"
         }, [
           h('div', { class: "absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl text-white" }),
@@ -127,7 +152,7 @@ export default defineComponent({
           h('div', { class: "flex items-center justify-between mb-4" }, [
             h('p', { class: "text-sm leading-relaxed text-slate-800 dark:text-slate-200 font-medium flex-1" }, c.content),
             // Bouton supprimer pour l'auteur ou admin
-            (c.authorId === user.phone || c.user === user.phone || user.phone === '0198874019') ? h('button', {
+            (c.user === user.phone || user.phone === '0198874019') ? h('button', {
               onClick: () => deleteConfession(c.id),
               class: "text-red-500 ml-2 p-1"
             }, [

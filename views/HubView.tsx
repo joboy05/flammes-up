@@ -1,6 +1,7 @@
 import { defineComponent, h, ref, onMounted } from 'vue';
 import { api } from '../services/api';
 import { toast } from '../services/toast';
+import Skeleton from '../components/Skeleton';
 
 export default defineComponent({
   name: 'HubView',
@@ -54,6 +55,14 @@ export default defineComponent({
       }
     };
 
+    const ServiceSkeleton = () => h('div', { class: "w-full flex items-center gap-5 p-5 bg-white dark:bg-[#1a1d23] rounded-[30px] shadow-sm mb-3" }, [
+      h(Skeleton, { width: '3.5rem', height: '3.5rem', borderRadius: '1rem' }),
+      h('div', { class: "flex-1 space-y-2" }, [
+        h(Skeleton, { width: '8rem', height: '0.8rem' }),
+        h(Skeleton, { width: '5rem', height: '0.4rem' })
+      ])
+    ]);
+
     return () => h('div', { class: "flex flex-col min-h-full pb-10" }, [
       h('header', { class: "px-6 pt-12 pb-10 bg-gradient-to-br from-primary to-[#c41e1e] text-white rounded-b-[45px] shadow-2xl relative overflow-hidden" }, [
         h('div', { class: "absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl" }),
@@ -61,8 +70,14 @@ export default defineComponent({
         h('p', { class: "opacity-80 text-xs font-bold uppercase tracking-widest" }, 'Parakou Digital Campus')
       ]),
 
-      isLoading.value ? h('div', { class: "p-20 flex justify-center" }, [
-        h('div', { class: "w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" })
+      isLoading.value ? h('div', { class: "px-5 -mt-8 space-y-3 relative z-10" }, [
+        ServiceSkeleton(),
+        ServiceSkeleton(),
+        ServiceSkeleton(),
+        h('div', { class: "grid grid-cols-2 gap-3" }, [
+          h(Skeleton, { width: '100%', height: '6rem', borderRadius: '28px' }),
+          h(Skeleton, { width: '100%', height: '6rem', borderRadius: '28px' })
+        ])
       ]) :
         h('div', { class: "px-5 -mt-8 space-y-6 relative z-10" }, [
           h('div', { class: "space-y-3" },

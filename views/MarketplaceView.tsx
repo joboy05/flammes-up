@@ -3,6 +3,7 @@ import { defineComponent, ref, h, onMounted, onUnmounted } from 'vue';
 import { db } from '../services/db';
 import { toast } from '../services/toast';
 import { formatRelativeDate } from '../services/dates';
+import Skeleton from '../components/Skeleton';
 
 interface Product {
   id: string;
@@ -29,18 +30,37 @@ export default defineComponent({
     const activeCategory = ref('Tous');
     const isPosting = ref(false);
     const isSubmitting = ref(false);
+    const isLoading = ref(true);
     const form = ref({ title: '', price: '', location: '', category: 'Électronique', description: '' });
     let unsubscribe: any = null;
 
     onMounted(() => {
       unsubscribe = (db as any).subscribeProducts((newProducts: any) => {
         products.value = newProducts;
+        isLoading.value = false;
       });
+      // Safety timeout for loading
+      setTimeout(() => { isLoading.value = false; }, 3000);
     });
 
     onUnmounted(() => {
       if (unsubscribe) unsubscribe();
     });
+
+    const ProductSkeleton = () => h('div', {
+      class: "bg-white dark:bg-white/5 rounded-[28px] overflow-hidden border border-slate-100 dark:border-white/5 shadow-sm mb-4"
+    }, [
+      h(Skeleton, { width: '100%', height: '10rem', borderRadius: '0' }),
+      h('div', { class: "p-3 space-y-2" }, [
+        h(Skeleton, { width: '4rem', height: '0.4rem' }),
+        h(Skeleton, { width: '80%', height: '0.6rem' }),
+        h(Skeleton, { width: '3rem', height: '0.8rem' }),
+        h('div', { class: "flex justify-between items-center" }, [
+          h(Skeleton, { width: '4rem', height: '0.4rem' }),
+          h(Skeleton, { width: '2rem', height: '0.4rem' })
+        ])
+      ])
+    ]);
 
     const filteredProducts = () => activeCategory.value === 'Tous'
       ? products.value
@@ -160,7 +180,12 @@ export default defineComponent({
       ]),
 
       h('div', { class: "grid grid-cols-2 gap-3 p-4 pb-28" },
-        filteredProducts().map(p => h('div', {
+        isLoading.value ? [
+          ProductSkeleton(),
+          ProductSkeleton(),
+          ProductSkeleton(),
+          ProductSkeleton()
+        ] : filteredProducts().map(p => h('div', {
           key: p.id,
           onClick: () => selectedProduct.value = p,
           class: "bg-white dark:bg-white/5 rounded-[28px] overflow-hidden border border-slate-100 dark:border-white/5 active:scale-95 transition-transform shadow-sm cursor-pointer"
